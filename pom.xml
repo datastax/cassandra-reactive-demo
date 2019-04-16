@@ -39,8 +39,6 @@
     <spring-boot.version>2.1.4.RELEASE</spring-boot.version>
     <slf4j.version>1.7.26</slf4j.version>
     <logback.version>1.2.3</logback.version>
-    <jcip-annotations.version>1.0-1</jcip-annotations.version>
-    <spotbugs-annotations.version>3.1.12</spotbugs-annotations.version>
     <junit.version>5.4.0</junit.version>
     <assertj.version>3.12.2</assertj.version>
     <mockito.version>2.26.0</mockito.version>
@@ -107,17 +105,6 @@
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
         <version>${logback.version}</version>
-      </dependency>
-      <!-- Annotations -->
-      <dependency>
-        <groupId>com.github.stephenc.jcip</groupId>
-        <artifactId>jcip-annotations</artifactId>
-        <version>${jcip-annotations.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-annotations</artifactId>
-        <version>${spotbugs-annotations.version}</version>
       </dependency>
       <!-- Junit 5 -->
       <dependency>
@@ -206,6 +193,11 @@
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
           <version>0.8.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+          <version>${spring-boot.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>

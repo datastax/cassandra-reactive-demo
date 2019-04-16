@@ -1,0 +1,22 @@
+# ----------------------------------------------------------
+# Spring Boot extra Config
+# ----------------------------------------------------------
+spring:
+  application:
+    name: Cassandra Reactive Demo
+  messages:
+    basename: messages
+server:
+  port: 8082
+   
+# ----------------------------------------------------------
+# Connectivity to DataStax Enterprise
+# ----------------------------------------------------------
+dse:
+  contactPoints: 127.0.1.1
+  port: 9042
+  localdc: datacenter1
+  username:
+  password:
+  keyspace: demo
+  

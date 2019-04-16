@@ -13,23 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.demo.sync.controller;
+package com.datastax.demo.sync.convert;
 
-import com.datastax.demo.sync.dao.DemoDao;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
+import java.nio.ByteBuffer;
+import java.util.Base64;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Component;
 
-@Controller
-public class DemoController {
+@Component
+public class StringToByteBufferConverter implements Converter<String, ByteBuffer> {
 
-  @SuppressWarnings("unused")
-  @Autowired
-  private DemoDao demoDao;
-
-  @GetMapping("/")
-  public String home(Model model) {
-    return "home";
+  @Override
+  public ByteBuffer convert(@NonNull String source) {
+    byte[] bytes = Base64.getUrlDecoder().decode(source);
+    return ByteBuffer.wrap(bytes);
   }
 }

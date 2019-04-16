@@ -15,6 +15,7 @@
  */
 package com.datastax.demo.sync.conf;
 
+import com.datastax.demo.sync.util.SchemaUpdater;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.DseSessionBuilder;
 import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
@@ -22,8 +23,6 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
-import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.List;
@@ -35,12 +34,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
 
-/** Connectivity to DSE (cassandra, graph, search). */
 @Configuration
-public class DemoConfiguration {
+public class DseConfiguration {
 
-  /** Internal logger. */
-  private static final Logger LOGGER = LoggerFactory.getLogger(DemoConfiguration.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DseConfiguration.class);
 
   @Value("#{'${dse.contactPoints}'.split(',')}")
   private List<String> contactPoints;
@@ -58,13 +55,13 @@ public class DemoConfiguration {
   @Value("${dse.password}")
   private String dsePassword;
 
-  @Value("${dse.localdc: dc1}")
+  @Value("${dse.localdc}")
   private String localDc;
 
   @Bean
-  public DseSession dseSession() {
+  public DseSession session() {
 
-    LOGGER.info("Initializing connection to DSE Cluster");
+    LOGGER.info("Initializing connection");
     LOGGER.info("Contact Points : {}", contactPoints);
     LOGGER.info("Listening Port : {}", port);
     LOGGER.info("Local DC : {}", localDc);
@@ -97,12 +94,9 @@ public class DemoConfiguration {
 
     sessionBuilder = sessionBuilder.withConfigLoader(configLoaderBuilder.build());
 
-    // First Connect without Keyspace (to create it if needed)
+    // First connect without keyspace, and create a keyspace if needed
     try (DseSession tempSession = sessionBuilder.build()) {
-      LOGGER.info("Creating keyspace {} (if needed)", keyspace);
-      SimpleStatement createKeyspace =
-          SchemaBuilder.createKeyspace(keyspace).ifNotExists().withSimpleStrategy(1).build();
-      tempSession.execute(createKeyspace);
+      SchemaUpdater.updateSchema(keyspace, tempSession);
     }
 
     // Now create the actual session

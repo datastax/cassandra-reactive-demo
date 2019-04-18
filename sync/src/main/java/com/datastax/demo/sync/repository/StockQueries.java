@@ -17,6 +17,7 @@ package com.datastax.demo.sync.repository;
 
 import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.bindMarker;
 import static com.datastax.oss.driver.api.querybuilder.relation.Relation.column;
+import static java.time.ZoneOffset.UTC;
 
 import com.datastax.demo.sync.model.Stock;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
@@ -30,6 +31,7 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import java.time.Instant;
+import java.time.Period;
 import java.util.Objects;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
@@ -44,6 +46,10 @@ public final class StockQueries {
 
   private static final CqlIdentifier START = CqlIdentifier.fromCql("start");
   private static final CqlIdentifier END = CqlIdentifier.fromCql("end");
+
+  private static final Instant MIN_START = Instant.EPOCH;
+  private static final Instant MAX_END =
+      MIN_START.atZone(UTC).plus(Period.ofYears(100)).toInstant();
 
   @NonNull
   public static SimpleStatement createTable(@Nullable CqlIdentifier keyspace) {
@@ -111,11 +117,14 @@ public final class StockQueries {
 
   @NonNull
   static BoundStatement bindRange(
-      PreparedStatement ps, @NonNull String symbol, @NonNull Instant start, @NonNull Instant end) {
+      PreparedStatement ps,
+      @NonNull String symbol,
+      @Nullable Instant start,
+      @Nullable Instant end) {
     return ps.boundStatementBuilder()
         .setString(SYMBOL, symbol)
-        .setInstant(START, start)
-        .setInstant(END, end)
+        .setInstant(START, start == null ? MIN_START : start)
+        .setInstant(END, end == null ? MAX_END : end)
         .build();
   }
 

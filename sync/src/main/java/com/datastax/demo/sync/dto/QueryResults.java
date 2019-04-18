@@ -23,11 +23,11 @@ import org.springframework.lang.Nullable;
 
 public class QueryResults<T> {
 
-  private final Stream<T> results;
+  @NonNull private final Stream<T> results;
 
   @Nullable private final ByteBuffer nextPage;
 
-  public QueryResults(Stream<T> results, @Nullable ByteBuffer nextPage) {
+  public QueryResults(@NonNull Stream<T> results, @Nullable ByteBuffer nextPage) {
     this.results = results;
     this.nextPage = nextPage;
   }

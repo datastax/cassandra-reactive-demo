@@ -24,11 +24,11 @@ import org.springframework.lang.Nullable;
 @SuppressWarnings("unused")
 public class ResultsPage<T> {
 
-  private final Stream<T> results;
+  @NonNull private final Stream<T> results;
 
   @Nullable private final URI nextPage;
 
-  public ResultsPage(Stream<T> results, @Nullable URI nextPage) {
+  public ResultsPage(@NonNull Stream<T> results, @Nullable URI nextPage) {
     this.results = results;
     this.nextPage = nextPage;
   }

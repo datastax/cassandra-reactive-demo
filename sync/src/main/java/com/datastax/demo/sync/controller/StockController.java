@@ -15,6 +15,8 @@
  */
 package com.datastax.demo.sync.controller;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
 import com.datastax.demo.sync.dto.QueryResults;
 import com.datastax.demo.sync.dto.ResultsPage;
 import com.datastax.demo.sync.dto.StockDto;
@@ -27,7 +29,6 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Base64;
 import java.util.stream.Stream;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
@@ -48,20 +49,28 @@ public class StockController {
 
   private static final int PAGE_SIZE = 10;
 
-  @Autowired private StockRepository stockRepository;
+  private final StockRepository stockRepository;
+
+  public StockController(StockRepository stockRepository) {
+    this.stockRepository = stockRepository;
+  }
 
   @GetMapping("/{symbol}")
   public ResultsPage<StockDto> listStocks(
       @PathVariable(name = "symbol") @NonNull String symbol,
-      @RequestParam(name = "start") @NonNull ZonedDateTime start,
-      @RequestParam(name = "end") @NonNull ZonedDateTime end,
+      @RequestParam(name = "start", required = false) @Nullable ZonedDateTime start,
+      @RequestParam(name = "end", required = false) @Nullable ZonedDateTime end,
       @RequestParam(name = "page", required = false) @Nullable ByteBuffer pagingState) {
     QueryResults<Stock> results =
         stockRepository.findAllBySymbol(
-            symbol, start.toInstant(), end.toInstant(), PAGE_SIZE, pagingState);
-    URI nextPageUri = buildNextPageUri(results);
+            symbol,
+            start != null ? start.toInstant() : null,
+            end != null ? end.toInstant() : null,
+            PAGE_SIZE,
+            pagingState);
     Stream<StockDto> stocks =
         results.getResults().map(stock -> new StockDto(stock, buildDetailsUri(stock)));
+    URI nextPageUri = buildNextPageUri(results);
     return new ResultsPage<>(stocks, nextPageUri);
   }
 
@@ -74,11 +83,11 @@ public class StockController {
         .orElse(ResponseEntity.notFound().build());
   }
 
-  @PostMapping("/")
+  @PostMapping(value = "", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
   public ResponseEntity<?> createStock(@RequestBody Stock stock) {
     stockRepository.save(stock);
     URI location = buildDetailsUri(stock);
-    return ResponseEntity.created(location).build();
+    return ResponseEntity.created(location).body(stock);
   }
 
   @PutMapping("/{symbol}/{date}")
@@ -88,12 +97,13 @@ public class StockController {
       @RequestBody Stock stock) {
     return stockRepository
         .findById(symbol, date)
+        .map(current -> new Stock(current.getSymbol(), current.getDate(), stock.getValue()))
         .map(
             toUpdate -> {
-              Stock updated = new Stock(toUpdate.getSymbol(), toUpdate.getDate(), stock.getValue());
-              stockRepository.save(updated);
-              return ResponseEntity.noContent().build();
+              stockRepository.save(toUpdate);
+              return toUpdate;
             })
+        .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
 
@@ -119,7 +129,7 @@ public class StockController {
 
   private URI buildDetailsUri(Stock stock) {
     return ServletUriComponentsBuilder.fromCurrentRequestUri()
-        .replacePath("{symbol}/{date}")
+        .replacePath("/api/v1/stocks/{symbol}/{date}")
         .buildAndExpand(stock.getSymbol(), stock.getDate())
         .toUri();
   }

@@ -66,8 +66,8 @@ public class StockRepository {
   @NonNull
   public QueryResults<Stock> findAllBySymbol(
       @NonNull String symbol,
-      @NonNull Instant start,
-      @NonNull Instant end,
+      @Nullable Instant start,
+      @Nullable Instant end,
       int pageSize,
       @Nullable ByteBuffer pagingState) {
     ResultSet rs =

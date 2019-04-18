@@ -15,7 +15,6 @@
  */
 package com.datastax.demo.sync.conf;
 
-import com.datastax.demo.sync.util.SchemaUpdater;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.DseSessionBuilder;
 import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
@@ -31,10 +30,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.util.StopWatch;
 import org.springframework.util.StringUtils;
 
 @Configuration
+@Profile("!unit-test")
 public class DseConfiguration {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DseConfiguration.class);
@@ -70,7 +71,7 @@ public class DseConfiguration {
     StopWatch stopWatch = new StopWatch();
     stopWatch.start();
 
-    DseSessionBuilder sessionBuilder = new DseSessionBuilder().withLocalDatacenter(localDc);
+    DseSessionBuilder sessionBuilder = new DseSessionBuilder();
 
     contactPoints
         .stream()
@@ -81,7 +82,6 @@ public class DseConfiguration {
         DriverConfigLoader.programmaticBuilder()
             .withString(DefaultDriverOption.REQUEST_CONSISTENCY, "QUORUM")
             .withDuration(DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(30));
-
     if (!StringUtils.isEmpty(dseUsername) && !StringUtils.isEmpty(dsePassword)) {
       LOGGER.info("Username : {}", dseUsername);
       configLoaderBuilder =
@@ -92,19 +92,16 @@ public class DseConfiguration {
               .withString(DefaultDriverOption.AUTH_PROVIDER_PASSWORD, dsePassword);
     }
 
-    sessionBuilder = sessionBuilder.withConfigLoader(configLoaderBuilder.build());
+    DseSession session =
+        sessionBuilder
+            .withConfigLoader(configLoaderBuilder.build())
+            .withLocalDatacenter(localDc)
+            .withKeyspace(keyspace)
+            .build();
 
-    // First connect without keyspace, and create a keyspace if needed
-    try (DseSession tempSession = sessionBuilder.build()) {
-      SchemaUpdater.updateSchema(keyspace, tempSession);
-    }
-
-    // Now create the actual session
-    DseSession dseSession = sessionBuilder.withKeyspace(keyspace).build();
     stopWatch.stop();
-    LOGGER.info(
-        "Connection established to DSE Cluster \\_0_/ in {} seconds.",
-        stopWatch.getTotalTimeSeconds());
-    return dseSession;
+    LOGGER.info("Connection established in {} seconds.", stopWatch.getTotalTimeSeconds());
+
+    return session;
   }
 }

@@ -17,18 +17,13 @@ package com.datastax.demo.sync.controller;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
-import com.datastax.demo.sync.dto.QueryResults;
 import com.datastax.demo.sync.dto.ResultsPage;
 import com.datastax.demo.sync.dto.StockDto;
 import com.datastax.demo.sync.model.Stock;
 import com.datastax.demo.sync.repository.StockRepository;
-import com.datastax.oss.protocol.internal.util.Bytes;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.time.ZonedDateTime;
-import java.util.Base64;
-import java.util.stream.Stream;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
@@ -41,7 +36,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/v1/stocks")
@@ -51,26 +45,23 @@ public class StockController {
 
   private final StockRepository stockRepository;
 
-  public StockController(StockRepository stockRepository) {
+  private final StockUriHelper uriHelper;
+
+  public StockController(StockRepository stockRepository, StockUriHelper uriHelper) {
     this.stockRepository = stockRepository;
+    this.uriHelper = uriHelper;
   }
 
   @GetMapping("/{symbol}")
   public ResultsPage<StockDto> listStocks(
       @PathVariable(name = "symbol") @NonNull String symbol,
-      @RequestParam(name = "start", required = false) @Nullable ZonedDateTime start,
-      @RequestParam(name = "end", required = false) @Nullable ZonedDateTime end,
+      @RequestParam(name = "start", required = false) @Nullable Instant start,
+      @RequestParam(name = "end", required = false) @Nullable Instant end,
       @RequestParam(name = "page", required = false) @Nullable ByteBuffer pagingState) {
-    QueryResults<Stock> results =
-        stockRepository.findAllBySymbol(
-            symbol,
-            start != null ? start.toInstant() : null,
-            end != null ? end.toInstant() : null,
-            PAGE_SIZE,
-            pagingState);
-    Stream<StockDto> stocks =
-        results.getResults().map(stock -> new StockDto(stock, buildDetailsUri(stock)));
-    URI nextPageUri = buildNextPageUri(results);
+    var results = stockRepository.findAllBySymbol(symbol, start, end, PAGE_SIZE, pagingState);
+    var stocks =
+        results.getResults().map(stock -> new StockDto(stock, uriHelper.buildDetailsUri(stock)));
+    URI nextPageUri = uriHelper.buildNextPageUri(results);
     return new ResultsPage<>(stocks, nextPageUri);
   }
 
@@ -86,7 +77,7 @@ public class StockController {
   @PostMapping(value = "", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
   public ResponseEntity<?> createStock(@RequestBody Stock stock) {
     stockRepository.save(stock);
-    URI location = buildDetailsUri(stock);
+    URI location = uriHelper.buildDetailsUri(stock);
     return ResponseEntity.created(location).body(stock);
   }
 
@@ -111,26 +102,5 @@ public class StockController {
   public void deleteStock(
       @PathVariable("symbol") String symbol, @PathVariable("date") Instant date) {
     stockRepository.deleteById(symbol, date);
-  }
-
-  private URI buildNextPageUri(QueryResults<Stock> results) {
-    return results
-        .getNextPage()
-        .map(Bytes::getArray)
-        .map(bytes -> Base64.getUrlEncoder().withoutPadding().encodeToString(bytes))
-        .map(
-            encoded ->
-                ServletUriComponentsBuilder.fromCurrentRequest()
-                    .replaceQueryParam("page", encoded)
-                    .build(true)
-                    .toUri())
-        .orElse(null);
-  }
-
-  private URI buildDetailsUri(Stock stock) {
-    return ServletUriComponentsBuilder.fromCurrentRequestUri()
-        .replacePath("/api/v1/stocks/{symbol}/{date}")
-        .buildAndExpand(stock.getSymbol(), stock.getDate())
-        .toUri();
   }
 }

@@ -24,7 +24,7 @@ import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
 import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
 import static java.time.temporal.ChronoField.YEAR_OF_ERA;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import org.springframework.core.convert.converter.Converter;
@@ -32,7 +32,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
-public class StringToZonedDateTimeConverter implements Converter<String, ZonedDateTime> {
+public class StringToInstantConverter implements Converter<String, Instant> {
 
   private static final DateTimeFormatter PARSER =
       new DateTimeFormatterBuilder()
@@ -56,9 +56,6 @@ public class StringToZonedDateTimeConverter implements Converter<String, ZonedDa
           .optionalEnd()
           .optionalEnd()
           .optionalEnd()
-          .optionalStart()
-          .appendOffset("+HHmm", "Z") // matches +0200 and +02
-          .optionalEnd()
           .parseDefaulting(MONTH_OF_YEAR, 1)
           .parseDefaulting(DAY_OF_MONTH, 1)
           .parseDefaulting(HOUR_OF_DAY, 0)
@@ -69,7 +66,7 @@ public class StringToZonedDateTimeConverter implements Converter<String, ZonedDa
           .withZone(UTC);
 
   @Override
-  public ZonedDateTime convert(@NonNull String source) {
-    return ZonedDateTime.from(PARSER.parse(source));
+  public Instant convert(@NonNull String source) {
+    return Instant.from(PARSER.parse(source));
   }
 }

@@ -4,11 +4,9 @@
 spring:
   application:
     name: Cassandra Reactive Demo
-  messages:
-    basename: messages
 server:
   port: 8082
-   
+
 # ----------------------------------------------------------
 # Connectivity to DataStax Enterprise
 # ----------------------------------------------------------

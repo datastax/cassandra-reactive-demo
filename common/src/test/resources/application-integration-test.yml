@@ -1,0 +1,6 @@
+# ----------------------------------------------------------
+# DataStax Enterprise Java Driver Test Config
+# ----------------------------------------------------------
+driver:
+  consistency: LOCAL_ONE
+  pageSize: 2

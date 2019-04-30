@@ -1,0 +1,21 @@
+# ----------------------------------------------------------
+# Spring Boot Config
+# ----------------------------------------------------------
+spring:
+  application:
+    name: Cassandra Reactive Demo
+server:
+  port: 8082
+
+# ----------------------------------------------------------
+# DataStax Enterprise Java Driver Config
+# ----------------------------------------------------------
+driver:
+  contactPoints: 127.0.0.1
+  port: 9042
+  localdc: datacenter1
+  username:
+  password:
+  keyspace: demo
+  consistency: LOCAL_QUORUM
+  pageSize: 10

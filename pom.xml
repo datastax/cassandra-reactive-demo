@@ -18,11 +18,19 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>2.1.4.RELEASE</version>
+    <relativePath/>
+    <!-- lookup parent from repository -->
+  </parent>
   <groupId>com.datastax.demo</groupId>
   <artifactId>cassandra-reactive-demo</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <modules>
+    <module>common</module>
     <module>sync</module>
     <module>async</module>
     <module>reactive</module>
@@ -35,8 +43,6 @@
     <java.version>12</java.version>
     <dse-java-driver.version>2.0.1</dse-java-driver.version>
     <oss-java-driver.version>4.0.1</oss-java-driver.version>
-    <spring.version>5.1.6.RELEASE</spring.version>
-    <spring-boot.version>2.1.4.RELEASE</spring-boot.version>
     <slf4j.version>1.7.26</slf4j.version>
     <logback.version>1.2.3</logback.version>
     <junit.version>5.4.2</junit.version>
@@ -61,39 +67,10 @@
         <artifactId>java-driver-query-builder</artifactId>
         <version>${oss-java-driver.version}</version>
       </dependency>
-      <!-- Spring -->
       <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-core</artifactId>
-        <version>${spring.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-aop</artifactId>
-        <version>${spring.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-beans</artifactId>
-        <version>${spring.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-context</artifactId>
-        <version>${spring.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-expression</artifactId>
-        <version>${spring.version}</version>
-      </dependency>
-      <!-- Spring-Boot BOM -->
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>${spring-boot.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-test-infra</artifactId>
+        <version>${oss-java-driver.version}</version>
       </dependency>
       <!-- Logging -->
       <dependency>
@@ -141,6 +118,11 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
         <version>${mockito.version}</version>
       </dependency>
     </dependencies>
@@ -207,7 +189,6 @@
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
-          <version>${spring-boot.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -344,7 +325,7 @@ limitations under the License.]]></inlineHeader>
         <artifactId>maven-source-plugin</artifactId>
         <executions>
           <execution>
-            <id>attach-sources</id>
+            <id>generate-sources</id>
             <goals>
               <goal>jar-no-fork</goal>
             </goals>
@@ -360,7 +341,7 @@ limitations under the License.]]></inlineHeader>
         </configuration>
         <executions>
           <execution>
-            <id>attach-javadocs</id>
+            <id>generate-javadocs</id>
             <goals>
               <goal>jar</goal>
             </goals>

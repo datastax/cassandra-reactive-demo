@@ -13,19 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.demo.sync.repository;
+package com.datastax.demo.async.repository;
 
 import com.datastax.demo.common.dto.PagedResults;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.oss.driver.api.core.AsyncPagingIterable;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -37,7 +38,7 @@ import org.springframework.stereotype.Repository;
 /** A DAO that manages the persistence of {@link Stock} instances. */
 @Repository
 @Profile("!unit-test")
-public class StockRepository {
+public class AsyncStockRepository {
 
   private final DseSession session;
 
@@ -46,7 +47,7 @@ public class StockRepository {
   private final PreparedStatement findById;
   private final PreparedStatement findBySymbol;
 
-  public StockRepository(
+  public AsyncStockRepository(
       DseSession session,
       @Qualifier("stocks.prepared.insert") PreparedStatement insert,
       @Qualifier("stocks.prepared.deleteById") PreparedStatement deleteById,
@@ -63,13 +64,12 @@ public class StockRepository {
    * Saves the given stock value.
    *
    * @param stock The stock value to save.
-   * @return The saved stock.
+   * @return A future that will complete when the operation is completed.
    */
   @NonNull
-  public Stock save(@NonNull Stock stock) {
+  public CompletionStage<Stock> save(@NonNull Stock stock) {
     BoundStatement bound = insert.bind(stock.getSymbol(), stock.getDate(), stock.getValue());
-    session.execute(bound);
-    return stock;
+    return session.executeAsync(bound).thenApply(rs -> stock);
   }
 
   /**
@@ -77,10 +77,12 @@ public class StockRepository {
    *
    * @param symbol The stock symbol to delete.
    * @param date The stock date to delete.
+   * @return A future that will complete when the operation is completed.
    */
-  public void deleteById(@NonNull String symbol, @NonNull Instant date) {
+  @NonNull
+  public CompletionStage<Void> deleteById(@NonNull String symbol, @NonNull Instant date) {
     BoundStatement bound = deleteById.bind(symbol, date);
-    session.execute(bound);
+    return session.executeAsync(bound).thenApply(rs -> null);
   }
 
   /**
@@ -88,13 +90,16 @@ public class StockRepository {
    *
    * @param symbol The stock symbol to find.
    * @param date The stock date to find.
-   * @return The retrieved stock value, or empty if not found.
+   * @return A future that will complete when the operation is completed with the retrieved stock
+   *     value, or empty if not found.
    */
   @NonNull
-  public Optional<Stock> findById(@NonNull String symbol, @NonNull Instant date) {
+  public CompletionStage<Optional<Stock>> findById(@NonNull String symbol, @NonNull Instant date) {
     BoundStatement bound = findById.bind(symbol, date);
-    ResultSet rs = session.execute(bound);
-    return Optional.ofNullable(rs.one()).map(this::map);
+    return session
+        .executeAsync(bound)
+        .thenApply(AsyncPagingIterable::one)
+        .thenApply(row -> Optional.ofNullable(row).map(this::map));
   }
 
   /**
@@ -104,23 +109,25 @@ public class StockRepository {
    * @param startInclusive The date range start (inclusive).
    * @param endExclusive The date range end (exclusive).
    * @param pagingState The paging state, or {@code null} to retrieve the first page.
-   * @return A page of results.
+   * @return A future that will complete when the operation is completed with a page of results.
    */
   @NonNull
-  public PagedResults<Stock> findAllBySymbol(
+  public CompletionStage<PagedResults<Stock>> findAllBySymbol(
       @NonNull String symbol,
       @NonNull Instant startInclusive,
       @NonNull Instant endExclusive,
       @Nullable ByteBuffer pagingState) {
     BoundStatement bound =
         findBySymbol.bind(symbol, startInclusive, endExclusive).setPagingState(pagingState);
-    ResultSet rs = session.execute(bound);
-    Stream<Stock> results =
-        StreamSupport.stream(rs.spliterator(), false)
-            .limit(rs.getAvailableWithoutFetching())
-            .map(this::map);
-    ByteBuffer nextPage = rs.getExecutionInfo().getPagingState();
-    return new PagedResults<>(results, nextPage);
+    return session
+        .executeAsync(bound)
+        .thenApply(
+            rs -> {
+              Stream<Stock> results =
+                  StreamSupport.stream(rs.currentPage().spliterator(), false).map(this::map);
+              ByteBuffer nextPage = rs.getExecutionInfo().getPagingState();
+              return new PagedResults<>(results, nextPage);
+            });
   }
 
   @NonNull

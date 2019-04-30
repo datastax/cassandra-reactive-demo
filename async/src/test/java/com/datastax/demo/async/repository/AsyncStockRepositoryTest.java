@@ -13,37 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.demo.sync.repository;
+package com.datastax.demo.async.repository;
 
+import static java.util.concurrent.CompletableFuture.completedStage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import com.datastax.demo.common.dto.PagedResults;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * A unit test for {@link StockRepository}.
+ * A unit test for {@link AsyncStockRepository}.
  *
  * <p>This unit test does not require a Spring application context to be created.
  */
 @ExtendWith(MockitoExtension.class)
-class StockRepositoryTest {
+class AsyncStockRepositoryTest {
 
   @Mock private DseSession session;
 
@@ -54,10 +54,9 @@ class StockRepositoryTest {
 
   @Mock private BoundStatement bound;
 
-  @Mock private ResultSet resultSet;
+  @Mock private AsyncResultSet resultSet;
 
   @Mock private Row row1;
-
   @Mock private Row row2;
 
   @Mock private ExecutionInfo info;
@@ -75,50 +74,54 @@ class StockRepositoryTest {
   void should_save() {
     // given
     given(insert.bind(stock1.getSymbol(), stock1.getDate(), stock1.getValue())).willReturn(bound);
+    given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
     // when
-    var stockRepository = new StockRepository(session, insert, delete, findById, findBySymbol);
-    stockRepository.save(stock1);
+    var stockRepository = new AsyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var future = stockRepository.save(stock1);
     // then
-    verify(session).execute(bound);
+    assertThat(future).isNotNull().isCompletedWithValue(stock1);
+    verify(session).executeAsync(bound);
   }
 
   @Test
   void should_delete_by_id() {
     // given
     given(delete.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
+    given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
     // when
-    var stockRepository = new StockRepository(session, insert, delete, findById, findBySymbol);
-    stockRepository.deleteById(stock1.getSymbol(), stock1.getDate());
+    var stockRepository = new AsyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var future = stockRepository.deleteById(stock1.getSymbol(), stock1.getDate());
     // then
-    verify(session).execute(bound);
+    assertThat(future).isNotNull().isCompletedWithValue(null);
+    verify(session).executeAsync(bound);
   }
 
   @Test
-  void should_find_by_id() {
+  void should_find_by_id() throws ExecutionException, InterruptedException {
     // given
     given(findById.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
-    given(session.execute(bound)).willReturn(resultSet);
+    given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
     given(resultSet.one()).willReturn(row1);
     given(row1.getString(0)).willReturn(stock1.getSymbol());
     given(row1.getInstant(1)).willReturn(stock1.getDate());
     given(row1.getBigDecimal(2)).willReturn(stock1.getValue());
     // when
-    var stockRepository = new StockRepository(session, insert, delete, findById, findBySymbol);
-    Optional<Stock> result = stockRepository.findById(stock1.getSymbol(), stock1.getDate());
+    var stockRepository = new AsyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var future = stockRepository.findById(stock1.getSymbol(), stock1.getDate());
     // then
-    assertThat(result).isNotEmpty().contains(stock1);
-    verify(session).execute(bound);
+    assertThat(future).isNotNull().isCompleted();
+    assertThat(future.toCompletableFuture().get()).contains(stock1);
+    verify(session).executeAsync(bound);
   }
 
   @Test
-  void should_find_all_by_symbol() {
+  void should_find_all_by_symbol() throws ExecutionException, InterruptedException {
     // given
     given(findBySymbol.bind("ABC", i1, i2)).willReturn(bound);
     given(bound.setPagingState(state1)).willReturn(bound);
-    given(session.execute(bound)).willReturn(resultSet);
-    given(resultSet.getAvailableWithoutFetching()).willReturn(3);
+    given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
     List<Row> rows = List.of(row1, row2);
-    given(resultSet.spliterator()).willReturn(rows.spliterator());
+    given(resultSet.currentPage()).willReturn(rows);
     given(row1.getString(0)).willReturn(stock1.getSymbol());
     given(row1.getInstant(1)).willReturn(stock1.getDate());
     given(row1.getBigDecimal(2)).willReturn(stock1.getValue());
@@ -128,11 +131,13 @@ class StockRepositoryTest {
     given(resultSet.getExecutionInfo()).willReturn(info);
     given(info.getPagingState()).willReturn(state2);
     // when
-    var stockRepository = new StockRepository(session, insert, delete, findById, findBySymbol);
-    PagedResults<Stock> result = stockRepository.findAllBySymbol("ABC", i1, i2, state1);
+    var stockRepository = new AsyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var future = stockRepository.findAllBySymbol("ABC", i1, i2, state1);
     // then
-    assertThat(result.getResults()).isNotEmpty().containsExactly(stock1, stock2);
+    assertThat(future).isNotNull().isCompleted();
+    var result = future.toCompletableFuture().get();
+    assertThat(result.getResults()).containsExactly(stock1, stock2);
     assertThat(result.getNextPage()).isNotEmpty().contains(state2);
-    verify(session).execute(bound);
+    verify(session).executeAsync(bound);
   }
 }

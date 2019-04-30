@@ -19,6 +19,7 @@ import com.datastax.demo.common.model.Stock;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.time.Instant;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -42,13 +43,14 @@ public class StockUriHelper {
   /**
    * Creates an URI pointing to the next page of a result set.
    *
+   * @param request The HTTP request that will serve as the base for new URI.
    * @param nextPage The paging state to create an URI for.
    * @return An URI pointing to the next page of a result set.
    */
   @NonNull
-  public URI buildNextPageUri(@NonNull ByteBuffer nextPage) {
+  public URI buildNextPageUri(@NonNull HttpServletRequest request, @NonNull ByteBuffer nextPage) {
     String encoded = byteBufferStringConverter.convert(nextPage);
-    return ServletUriComponentsBuilder.fromCurrentRequest()
+    return ServletUriComponentsBuilder.fromRequest(request)
         .replaceQueryParam("page", encoded)
         .build(true)
         .toUri();
@@ -57,13 +59,14 @@ public class StockUriHelper {
   /**
    * Creates an URI pointing to a specific stock value.
    *
+   * @param request The HTTP request that will serve as the base for new URI.
    * @param stock The stock value to create an URI for.
    * @return An URI pointing to a specific stock value.
    */
   @NonNull
-  public URI buildStockDetailsUri(@NonNull Stock stock) {
+  public URI buildStockDetailsUri(@NonNull HttpServletRequest request, @NonNull Stock stock) {
     String date = instantStringConverter.convert(stock.getDate());
-    return ServletUriComponentsBuilder.fromCurrentRequestUri()
+    return ServletUriComponentsBuilder.fromRequestUri(request)
         .replacePath("/api/v1/stocks/{symbol}/{date}")
         .buildAndExpand(stock.getSymbol(), date)
         .toUri();

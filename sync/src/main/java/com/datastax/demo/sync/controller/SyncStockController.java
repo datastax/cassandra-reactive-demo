@@ -17,11 +17,12 @@ package com.datastax.demo.sync.controller;
 
 import com.datastax.demo.common.controller.StockUriHelper;
 import com.datastax.demo.common.model.Stock;
-import com.datastax.demo.sync.repository.StockRepository;
+import com.datastax.demo.sync.repository.SyncStockRepository;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.stream.Stream;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
@@ -38,15 +39,19 @@ import org.springframework.web.bind.annotation.RestController;
 /** A REST controller that performs CRUD actions on {@link Stock} instances. */
 @RestController
 @RequestMapping("/api/v1/stocks")
-public class StockController {
+public class SyncStockController {
 
-  private final StockRepository stockRepository;
+  private final SyncStockRepository stockRepository;
 
   private final StockUriHelper uriHelper;
 
-  public StockController(StockRepository stockRepository, StockUriHelper uriHelper) {
+  private final HttpServletRequest request;
+
+  public SyncStockController(
+      SyncStockRepository stockRepository, StockUriHelper uriHelper, HttpServletRequest request) {
     this.stockRepository = stockRepository;
     this.uriHelper = uriHelper;
+    this.request = request;
   }
 
   /**
@@ -69,7 +74,7 @@ public class StockController {
     var response = ResponseEntity.ok();
     results
         .getNextPage()
-        .map(uriHelper::buildNextPageUri)
+        .map(nextPage -> uriHelper.buildNextPageUri(request, nextPage))
         .ifPresent(uri -> response.header("Next", uri.toString()));
     return response.body(results.getResults());
   }
@@ -99,7 +104,7 @@ public class StockController {
   @PostMapping(value = "")
   public ResponseEntity<Stock> createStock(@RequestBody Stock stock) {
     stock = stockRepository.save(stock);
-    URI location = uriHelper.buildStockDetailsUri(stock);
+    URI location = uriHelper.buildStockDetailsUri(request, stock);
     return ResponseEntity.created(location).body(stock);
   }
 

@@ -44,7 +44,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * An integration test for the {@link StockController}.
+ * An integration test for the {@link SyncStockController}.
  *
  * <p>This test assumes that a DataStax Enterprise (DSE) or Apache Cassandra cluster is running and
  * accepting client connections.
@@ -55,7 +55,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 @TestInstance(Lifecycle.PER_CLASS)
 @ActiveProfiles("integration-test")
 @ComponentScan("com.datastax.demo")
-class StockControllerIT {
+class SyncStockControllerIT {
 
   private static final ParameterizedTypeReference<List<Stock>> LIST_OF_STOCKS =
       new ParameterizedTypeReference<>() {};
@@ -114,8 +114,11 @@ class StockControllerIT {
   /** Tests that an existing stock value can be retrieved with a GET request to its specific URI. */
   @Test
   void should_find_stock_by_id() {
+    // given
     insertStocks(stock1);
+    // when
     Stock actual = template.getForObject(stock1Uri, Stock.class);
+    // then
     assertThat(actual).isEqualTo(stock1);
   }
 

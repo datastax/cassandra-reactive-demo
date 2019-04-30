@@ -19,13 +19,17 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.datastax.demo.common.dto.PagedResults;
 import com.datastax.demo.common.model.Stock;
-import com.datastax.demo.sync.repository.StockRepository;
+import com.datastax.demo.sync.repository.SyncStockRepository;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -45,13 +49,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 /**
- * A unit test for the {@link StockController}.
+ * A unit test for the {@link SyncStockController}.
  *
  * <p>This test starts a full Spring application context and uses {@link MockMvc} and a mocked
- * {@link StockRepository} bean to perform the tests.
+ * {@link SyncStockRepository} bean to perform the tests.
  *
  * <p>No connection to a running cluster is required.
  */
@@ -59,21 +62,21 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 @AutoConfigureMockMvc
 @ActiveProfiles("unit-test")
 @ComponentScan("com.datastax.demo")
-class StockControllerTest {
+class SyncStockControllerTest {
 
   @Profile("unit-test")
   @Configuration
   static class StockControllerTestConfiguration {
 
     @Bean
-    public StockRepository mockStockRepository() {
-      return Mockito.mock(StockRepository.class);
+    public SyncStockRepository mockStockRepository() {
+      return Mockito.mock(SyncStockRepository.class);
     }
   }
 
   @Autowired private MockMvc mvc;
 
-  @Autowired private StockRepository repository;
+  @Autowired private SyncStockRepository repository;
 
   private String base = "/api/v1/stocks";
 
@@ -106,7 +109,7 @@ class StockControllerTest {
     // given
     given(repository.findById("ABC", i1)).willReturn(Optional.of(stock1));
     // when
-    mvc.perform(MockMvcRequestBuilders.get(base + "/ABC/20190101"))
+    mvc.perform(get(base + "/ABC/20190101"))
         // then
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -125,7 +128,7 @@ class StockControllerTest {
     var baseQuery = base + "/ABC?start=2019&end=2020";
     // page 1
     // when
-    mvc.perform(MockMvcRequestBuilders.get(baseQuery))
+    mvc.perform(get(baseQuery))
         // then
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -133,7 +136,7 @@ class StockControllerTest {
         .andExpect(content().json("[" + stock1Json + "]"));
     // page 2
     // when
-    mvc.perform(MockMvcRequestBuilders.get(baseQuery + "&page=" + stateEncoded1))
+    mvc.perform(get(baseQuery + "&page=" + stateEncoded1))
         // then
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -147,10 +150,7 @@ class StockControllerTest {
     // given
     given(repository.save(stock1)).willReturn(stock1);
     // when
-    mvc.perform(
-            MockMvcRequestBuilders.post(base + "/")
-                .contentType(APPLICATION_JSON)
-                .content(stock1Json))
+    mvc.perform(post(base + "/").contentType(APPLICATION_JSON).content(stock1Json))
         // then
         .andExpect(status().isCreated())
         .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -166,10 +166,7 @@ class StockControllerTest {
     given(repository.findById("ABC", i1)).willReturn(Optional.of(stock1));
     given(repository.save(stock1b)).willReturn(stock1b);
     // when
-    mvc.perform(
-            MockMvcRequestBuilders.put(base + "/ABC/20190101")
-                .contentType(APPLICATION_JSON)
-                .content(stock1bJson))
+    mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
         // then
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -183,7 +180,7 @@ class StockControllerTest {
   @Test
   void should_delete_stock() throws Exception {
     // when
-    mvc.perform(MockMvcRequestBuilders.delete(base + "/ABC/20190101"))
+    mvc.perform(delete(base + "/ABC/20190101"))
         // then
         .andExpect(status().isOk());
     verify(repository).deleteById("ABC", i1);

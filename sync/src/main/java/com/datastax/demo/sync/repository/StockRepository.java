@@ -63,10 +63,13 @@ public class StockRepository {
    * Saves the given stock value.
    *
    * @param stock The stock value to save.
+   * @return The saved stock.
    */
-  public void save(@NonNull Stock stock) {
+  @NonNull
+  public Stock save(@NonNull Stock stock) {
     BoundStatement bound = insert.bind(stock.getSymbol(), stock.getDate(), stock.getValue());
     session.execute(bound);
+    return stock;
   }
 
   /**

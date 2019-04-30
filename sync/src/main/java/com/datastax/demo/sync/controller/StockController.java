@@ -98,7 +98,7 @@ public class StockController {
    */
   @PostMapping(value = "")
   public ResponseEntity<Stock> createStock(@RequestBody Stock stock) {
-    stockRepository.save(stock);
+    stock = stockRepository.save(stock);
     URI location = uriHelper.buildStockDetailsUri(stock);
     return ResponseEntity.created(location).body(stock);
   }
@@ -119,11 +119,7 @@ public class StockController {
     return stockRepository
         .findById(symbol, date)
         .map(current -> new Stock(current.getSymbol(), current.getDate(), stock.getValue()))
-        .map(
-            toUpdate -> {
-              stockRepository.save(toUpdate);
-              return toUpdate;
-            })
+        .map(stockRepository::save)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }

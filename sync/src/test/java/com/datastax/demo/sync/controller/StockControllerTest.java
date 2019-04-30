@@ -144,6 +144,8 @@ class StockControllerTest {
   /** Tests that a stock value can be created via a POST request to the appropriate URI. */
   @Test
   void should_create_stock() throws Exception {
+    // given
+    given(repository.save(stock1)).willReturn(stock1);
     // when
     mvc.perform(
             MockMvcRequestBuilders.post(base + "/")
@@ -162,6 +164,7 @@ class StockControllerTest {
   void should_update_stock() throws Exception {
     // given
     given(repository.findById("ABC", i1)).willReturn(Optional.of(stock1));
+    given(repository.save(stock1b)).willReturn(stock1b);
     // when
     mvc.perform(
             MockMvcRequestBuilders.put(base + "/ABC/20190101")

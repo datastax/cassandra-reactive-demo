@@ -47,7 +47,10 @@ class StockRepositoryTest {
 
   @Mock private DseSession session;
 
-  @Mock private PreparedStatement prepared;
+  @Mock private PreparedStatement insert;
+  @Mock private PreparedStatement delete;
+  @Mock private PreparedStatement findById;
+  @Mock private PreparedStatement findBySymbol;
 
   @Mock private BoundStatement bound;
 
@@ -71,9 +74,9 @@ class StockRepositoryTest {
   @Test
   void should_save() {
     // given
-    given(prepared.bind(stock1.getSymbol(), stock1.getDate(), stock1.getValue())).willReturn(bound);
+    given(insert.bind(stock1.getSymbol(), stock1.getDate(), stock1.getValue())).willReturn(bound);
     // when
-    var stockRepository = new StockRepository(session, prepared, prepared, prepared, prepared);
+    var stockRepository = new StockRepository(session, insert, delete, findById, findBySymbol);
     stockRepository.save(stock1);
     // then
     verify(session).execute(bound);
@@ -82,9 +85,9 @@ class StockRepositoryTest {
   @Test
   void should_delete_by_id() {
     // given
-    given(prepared.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
+    given(delete.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
     // when
-    var stockRepository = new StockRepository(session, prepared, prepared, prepared, prepared);
+    var stockRepository = new StockRepository(session, insert, delete, findById, findBySymbol);
     stockRepository.deleteById(stock1.getSymbol(), stock1.getDate());
     // then
     verify(session).execute(bound);
@@ -93,14 +96,14 @@ class StockRepositoryTest {
   @Test
   void should_find_by_id() {
     // given
-    given(prepared.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
+    given(findById.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
     given(session.execute(bound)).willReturn(resultSet);
     given(resultSet.one()).willReturn(row1);
     given(row1.getString(0)).willReturn(stock1.getSymbol());
     given(row1.getInstant(1)).willReturn(stock1.getDate());
     given(row1.getBigDecimal(2)).willReturn(stock1.getValue());
     // when
-    var stockRepository = new StockRepository(session, prepared, prepared, prepared, prepared);
+    var stockRepository = new StockRepository(session, insert, delete, findById, findBySymbol);
     Optional<Stock> result = stockRepository.findById(stock1.getSymbol(), stock1.getDate());
     // then
     assertThat(result).isNotEmpty().contains(stock1);
@@ -110,7 +113,7 @@ class StockRepositoryTest {
   @Test
   void should_find_all_by_symbol() {
     // given
-    given(prepared.bind("ABC", i1, i2)).willReturn(bound);
+    given(findBySymbol.bind("ABC", i1, i2)).willReturn(bound);
     given(bound.setPagingState(state1)).willReturn(bound);
     given(session.execute(bound)).willReturn(resultSet);
     given(resultSet.getAvailableWithoutFetching()).willReturn(3);
@@ -125,7 +128,7 @@ class StockRepositoryTest {
     given(resultSet.getExecutionInfo()).willReturn(info);
     given(info.getPagingState()).willReturn(state2);
     // when
-    var stockRepository = new StockRepository(session, prepared, prepared, prepared, prepared);
+    var stockRepository = new StockRepository(session, insert, delete, findById, findBySymbol);
     PagedResults<Stock> result = stockRepository.findAllBySymbol("ABC", i1, i2, state1);
     // then
     assertThat(result.getResults()).isNotEmpty().containsExactly(stock1, stock2);

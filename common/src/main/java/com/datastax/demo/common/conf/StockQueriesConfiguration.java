@@ -100,7 +100,7 @@ public class StockQueriesConfiguration {
   }
 
   @Bean("stocks.simple.findBySymbol")
-  public SimpleStatement stockFindBySymbol(@NonNull CqlIdentifier keyspace) {
+  public SimpleStatement findBySymbol(@NonNull CqlIdentifier keyspace) {
     return QueryBuilder.selectFrom(keyspace, STOCKS)
         .columns(SYMBOL, DATE, VALUE)
         .where(
@@ -113,25 +113,25 @@ public class StockQueriesConfiguration {
   }
 
   @Bean("stocks.prepared.insert")
-  public PreparedStatement stockInsertPrepared(
+  public PreparedStatement insertPrepared(
       DseSession session, @Qualifier("stocks.simple.insert") SimpleStatement stockInsert) {
     return session.prepare(stockInsert);
   }
 
   @Bean("stocks.prepared.deleteById")
-  public PreparedStatement stockDeleteByIdPrepared(
+  public PreparedStatement deleteByIdPrepared(
       DseSession session, @Qualifier("stocks.simple.deleteById") SimpleStatement stockDeleteById) {
     return session.prepare(stockDeleteById);
   }
 
   @Bean("stocks.prepared.findById")
-  public PreparedStatement stockFindByIdPrepared(
+  public PreparedStatement findByIdPrepared(
       DseSession session, @Qualifier("stocks.simple.findById") SimpleStatement stockFindById) {
     return session.prepare(stockFindById);
   }
 
   @Bean("stocks.prepared.findBySymbol")
-  public PreparedStatement stockFindBySymbolPrepared(
+  public PreparedStatement findBySymbolPrepared(
       DseSession session,
       @Qualifier("stocks.simple.findBySymbol") SimpleStatement stockFindBySymbol) {
     return session.prepare(stockFindBySymbol);

@@ -15,13 +15,14 @@
  */
 package com.datastax.demo.async.controller;
 
+import static java.util.concurrent.CompletableFuture.completedStage;
+
 import com.datastax.demo.async.repository.AsyncStockRepository;
 import com.datastax.demo.common.controller.StockUriHelper;
 import com.datastax.demo.common.model.Stock;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -160,7 +161,7 @@ public class AsyncStockController {
                 maybeFound
                     .map(found -> new Stock(found.getSymbol(), found.getDate(), stock.getValue()))
                     .map(toUpdate -> stockRepository.save(toUpdate).thenApply(ResponseEntity::ok))
-                    .orElse(CompletableFuture.completedFuture(ResponseEntity.notFound().build()))
+                    .orElse(completedStage(ResponseEntity.notFound().build()))
                     .whenComplete(
                         (response, error) -> {
                           if (error == null) {

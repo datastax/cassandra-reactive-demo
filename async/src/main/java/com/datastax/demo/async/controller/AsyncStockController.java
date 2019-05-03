@@ -118,7 +118,7 @@ public class AsyncStockController {
    * @param request The current HTTP request.
    * @return The created stocked value.
    */
-  @PostMapping(value = "")
+  @PostMapping("")
   public DeferredResult<ResponseEntity<Stock>> createStock(
       @RequestBody Stock stock, @NonNull HttpServletRequest request) {
     var deferred = new DeferredResult<ResponseEntity<Stock>>();
@@ -144,7 +144,7 @@ public class AsyncStockController {
    * @param stock The new stock value.
    * @return The updated stock value.
    */
-  @PutMapping(value = "/{symbol}/{date}")
+  @PutMapping("/{symbol}/{date}")
   public DeferredResult<ResponseEntity<Stock>> updateStock(
       @PathVariable("symbol") String symbol,
       @PathVariable("date") Instant date,

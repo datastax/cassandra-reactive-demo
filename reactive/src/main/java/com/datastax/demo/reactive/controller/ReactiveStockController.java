@@ -92,7 +92,7 @@ public class ReactiveStockController {
    * @param request The current HTTP request.
    * @return The created stocked value.
    */
-  @PostMapping(value = "")
+  @PostMapping("")
   public Mono<ResponseEntity<Stock>> createStock(
       @RequestBody Stock stock, @NonNull HttpServletRequest request) {
     return stockRepository
@@ -110,7 +110,7 @@ public class ReactiveStockController {
    * @param stock The new stock value.
    * @return The updated stock value.
    */
-  @PutMapping(value = "/{symbol}/{date}")
+  @PutMapping("/{symbol}/{date}")
   public Mono<ResponseEntity<Stock>> updateStock(
       @PathVariable("symbol") String symbol,
       @PathVariable("date") Instant date,

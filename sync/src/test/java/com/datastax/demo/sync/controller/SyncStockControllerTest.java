@@ -88,8 +88,6 @@ class SyncStockControllerTest {
   private String stock1bJson = "{\"symbol\":\"ABC\",\"date\":\"20190101000000000\",\"value\":43.0}";
   private String stock2Json = "{\"symbol\":\"ABC\",\"date\":\"20200101000000000\",\"value\":44.0}";
 
-  private Stream<Stock> page1 = Stream.of(stock1, stock2);
-
   @BeforeEach
   void setUp() {
     MockitoAnnotations.initMocks(this);
@@ -115,7 +113,7 @@ class SyncStockControllerTest {
   @Test
   void should_find_stocks_by_symbol() throws Exception {
     // given
-    given(repository.findAllBySymbol("ABC", i1, i2, 0, 10)).willReturn(page1);
+    given(repository.findAllBySymbol("ABC", i1, i2, 0, 10)).willReturn(Stream.of(stock1, stock2));
     var baseQuery = base + "/ABC?start=2019&end=2020&offset=0&limit=10";
     // when
     mvc.perform(get(baseQuery))

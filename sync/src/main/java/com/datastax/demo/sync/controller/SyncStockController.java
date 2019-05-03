@@ -94,7 +94,7 @@ public class SyncStockController {
    * @param stock The stock value to create.
    * @return The created stocked value.
    */
-  @PostMapping(value = "")
+  @PostMapping("")
   public ResponseEntity<Stock> createStock(@RequestBody Stock stock) {
     stock = stockRepository.save(stock);
     URI location = uriHelper.buildDetailsUri(request, stock);
@@ -109,7 +109,7 @@ public class SyncStockController {
    * @param stock The new stock value.
    * @return The updated stock value.
    */
-  @PutMapping(value = "/{symbol}/{date}")
+  @PutMapping("/{symbol}/{date}")
   public ResponseEntity<Stock> updateStock(
       @PathVariable("symbol") String symbol,
       @PathVariable("date") Instant date,

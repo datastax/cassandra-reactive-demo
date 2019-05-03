@@ -15,7 +15,7 @@
  */
 package com.datastax.demo.async.controller;
 
-import static java.util.concurrent.CompletableFuture.completedFuture;
+import static java.util.concurrent.CompletableFuture.completedStage;
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -90,8 +90,6 @@ class AsyncStockControllerTest {
   private String stock1bJson = "{\"symbol\":\"ABC\",\"date\":\"20190101000000000\",\"value\":43.0}";
   private String stock2Json = "{\"symbol\":\"ABC\",\"date\":\"20200101000000000\",\"value\":44.0}";
 
-  private Stream<Stock> page1 = Stream.of(stock1, stock2);
-
   @BeforeEach
   void setUp() {
     MockitoAnnotations.initMocks(this);
@@ -101,7 +99,7 @@ class AsyncStockControllerTest {
   @Test
   void should_find_stock_by_id() throws Exception {
     // given
-    given(repository.findById("ABC", i1)).willReturn(completedFuture(Optional.of(stock1)));
+    given(repository.findById("ABC", i1)).willReturn(completedStage(Optional.of(stock1)));
     // when
     var result = mvc.perform(get(base + "/ABC/20190101")).andReturn();
     mvc.perform(asyncDispatch(result))
@@ -113,12 +111,13 @@ class AsyncStockControllerTest {
 
   /**
    * Tests that existing stock values for a given symbol and within a given date range can be
-   * retrieved with a GET request to the appropriate URI, page by page.
+   * retrieved with a GET request to the appropriate URI.
    */
   @Test
   void should_find_stocks_by_symbol() throws Exception {
     // given
-    given(repository.findAllBySymbol("ABC", i1, i2, 0, 10)).willReturn(completedFuture(page1));
+    given(repository.findAllBySymbol("ABC", i1, i2, 0, 10))
+        .willReturn(completedStage(Stream.of(stock1, stock2)));
     var baseQuery = base + "/ABC?start=2019&end=2020&offset=0&limit=10";
     // when
     var result = mvc.perform(get(baseQuery)).andReturn();
@@ -133,7 +132,7 @@ class AsyncStockControllerTest {
   @Test
   void should_create_stock() throws Exception {
     // given
-    given(repository.save(stock1)).willReturn(completedFuture(stock1));
+    given(repository.save(stock1)).willReturn(completedStage(stock1));
     // when
     var result =
         mvc.perform(post(base).contentType(APPLICATION_JSON).content(stock1Json)).andReturn();
@@ -150,8 +149,8 @@ class AsyncStockControllerTest {
   @Test
   void should_update_stock() throws Exception {
     // given
-    given(repository.findById("ABC", i1)).willReturn(completedFuture(Optional.of(stock1)));
-    given(repository.save(stock1b)).willReturn(completedFuture(stock1b));
+    given(repository.findById("ABC", i1)).willReturn(completedStage(Optional.of(stock1)));
+    given(repository.save(stock1b)).willReturn(completedStage(stock1b));
     // when
     var result =
         mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
@@ -170,7 +169,7 @@ class AsyncStockControllerTest {
   @Test
   void should_delete_stock() throws Exception {
     // given
-    given(repository.deleteById("ABC", i1)).willReturn(completedFuture(null));
+    given(repository.deleteById("ABC", i1)).willReturn(completedStage(null));
     // when
     var result = mvc.perform(delete(base + "/ABC/20190101")).andReturn();
     mvc.perform(asyncDispatch(result))

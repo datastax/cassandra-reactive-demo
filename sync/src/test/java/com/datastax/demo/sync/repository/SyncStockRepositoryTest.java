@@ -19,19 +19,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-import com.datastax.demo.common.dto.PagedResults;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
-import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -59,16 +57,11 @@ class SyncStockRepositoryTest {
   @Mock private Row row1;
   @Mock private Row row2;
 
-  @Mock private ExecutionInfo info;
-
   private Instant i1 = Instant.parse("2019-01-01T00:00:00Z");
   private Instant i2 = Instant.parse("2020-01-01T00:00:00Z");
 
   private Stock stock1 = new Stock("ABC", i1, BigDecimal.valueOf(42.0));
   private Stock stock2 = new Stock("ABC", i2, BigDecimal.valueOf(43.0));
-
-  private ByteBuffer state1 = ByteBuffer.wrap(new byte[] {1, 2, 3});
-  private ByteBuffer state2 = ByteBuffer.wrap(new byte[] {4, 5, 6});
 
   @Test
   void should_save() {
@@ -114,9 +107,7 @@ class SyncStockRepositoryTest {
   void should_find_all_by_symbol() {
     // given
     given(findBySymbol.bind("ABC", i1, i2)).willReturn(bound);
-    given(bound.setPagingState(state1)).willReturn(bound);
     given(session.execute(bound)).willReturn(resultSet);
-    given(resultSet.getAvailableWithoutFetching()).willReturn(2);
     List<Row> rows = List.of(row1, row2);
     given(resultSet.spliterator()).willReturn(rows.spliterator());
     given(row1.getString(0)).willReturn(stock1.getSymbol());
@@ -125,14 +116,11 @@ class SyncStockRepositoryTest {
     given(row2.getString(0)).willReturn(stock2.getSymbol());
     given(row2.getInstant(1)).willReturn(stock2.getDate());
     given(row2.getBigDecimal(2)).willReturn(stock2.getValue());
-    given(resultSet.getExecutionInfo()).willReturn(info);
-    given(info.getPagingState()).willReturn(state2);
     // when
     var stockRepository = new SyncStockRepository(session, insert, delete, findById, findBySymbol);
-    PagedResults<Stock> result = stockRepository.findAllBySymbol("ABC", i1, i2, state1);
+    var result = stockRepository.findAllBySymbol("ABC", i1, i2, 0, 10);
     // then
-    assertThat(result.getResults()).isNotEmpty().containsExactly(stock1, stock2);
-    assertThat(result.getNextPage()).isNotEmpty().contains(state2);
+    assertThat(result).isNotEmpty().containsExactly(stock1, stock2);
     verify(session).execute(bound);
   }
 }

@@ -15,16 +15,12 @@
  */
 package com.datastax.demo.async.repository;
 
-import com.datastax.demo.common.dto.PagedResults;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.AsyncPagingIterable;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.Row;
-import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
@@ -32,7 +28,6 @@ import java.util.stream.StreamSupport;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
 /** A DAO that manages the persistence of {@link Stock} instances. */
@@ -64,7 +59,7 @@ public class AsyncStockRepository {
    * Saves the given stock value.
    *
    * @param stock The stock value to save.
-   * @return A future that will complete when the operation is completed.
+   * @return A future that will complete with the saved stock value.
    */
   @NonNull
   public CompletionStage<Stock> save(@NonNull Stock stock) {
@@ -90,8 +85,7 @@ public class AsyncStockRepository {
    *
    * @param symbol The stock symbol to find.
    * @param date The stock date to find.
-   * @return A future that will complete when the operation is completed with the retrieved stock
-   *     value, or empty if not found.
+   * @return A future that will complete with the retrieved stock value, or empty if not found.
    */
   @NonNull
   public CompletionStage<Optional<Stock>> findById(@NonNull String symbol, @NonNull Instant date) {
@@ -99,7 +93,7 @@ public class AsyncStockRepository {
     return session
         .executeAsync(bound)
         .thenApply(AsyncPagingIterable::one)
-        .thenApply(row -> Optional.ofNullable(row).map(this::map));
+        .thenApply(row -> Optional.ofNullable(row).map(Stock::fromRow));
   }
 
   /**
@@ -108,33 +102,25 @@ public class AsyncStockRepository {
    * @param symbol The stock symbol to find.
    * @param startInclusive The date range start (inclusive).
    * @param endExclusive The date range end (exclusive).
-   * @param pagingState The paging state, or {@code null} to retrieve the first page.
-   * @return A future that will complete when the operation is completed with a page of results.
+   * @param offset The zero-based index of the first result to return.
+   * @param limit The maximum number of results to return.
+   * @return A future that will complete with a {@link Stream} of results.
    */
   @NonNull
-  public CompletionStage<PagedResults<Stock>> findAllBySymbol(
+  public CompletionStage<Stream<Stock>> findAllBySymbol(
       @NonNull String symbol,
       @NonNull Instant startInclusive,
       @NonNull Instant endExclusive,
-      @Nullable ByteBuffer pagingState) {
-    BoundStatement bound =
-        findBySymbol.bind(symbol, startInclusive, endExclusive).setPagingState(pagingState);
+      long offset,
+      long limit) {
+    BoundStatement bound = findBySymbol.bind(symbol, startInclusive, endExclusive);
     return session
         .executeAsync(bound)
         .thenApply(
-            rs -> {
-              Stream<Stock> results =
-                  StreamSupport.stream(rs.currentPage().spliterator(), false).map(this::map);
-              ByteBuffer nextPage = rs.getExecutionInfo().getPagingState();
-              return new PagedResults<>(results, nextPage);
-            });
-  }
-
-  @NonNull
-  private Stock map(@NonNull Row row) {
-    var symbol = Objects.requireNonNull(row.getString(0));
-    var date = Objects.requireNonNull(row.getInstant(1));
-    var value = Objects.requireNonNull(row.getBigDecimal(2));
-    return new Stock(symbol, date, value);
+            rs ->
+                StreamSupport.stream(rs.currentPage().spliterator(), false)
+                    .skip(offset)
+                    .limit(limit)
+                    .map(Stock::fromRow));
   }
 }

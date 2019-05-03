@@ -27,13 +27,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.datastax.demo.common.dto.PagedResults;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.demo.sync.repository.SyncStockRepository;
 import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -91,12 +88,7 @@ class SyncStockControllerTest {
   private String stock1bJson = "{\"symbol\":\"ABC\",\"date\":\"20190101000000000\",\"value\":43.0}";
   private String stock2Json = "{\"symbol\":\"ABC\",\"date\":\"20200101000000000\",\"value\":44.0}";
 
-  private byte[] bytes = {1, 2, 3};
-  private ByteBuffer state1 = ByteBuffer.wrap(bytes);
-  private String stateEncoded1 = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-
-  private PagedResults<Stock> page1 = new PagedResults<>(Stream.of(stock1), state1);
-  private PagedResults<Stock> page2 = new PagedResults<>(Stream.of(stock2), null);
+  private Stream<Stock> page1 = Stream.of(stock1, stock2);
 
   @BeforeEach
   void setUp() {
@@ -123,25 +115,14 @@ class SyncStockControllerTest {
   @Test
   void should_find_stocks_by_symbol() throws Exception {
     // given
-    given(repository.findAllBySymbol("ABC", i1, i2, null)).willReturn(page1);
-    given(repository.findAllBySymbol("ABC", i1, i2, state1)).willReturn(page2);
-    var baseQuery = base + "/ABC?start=2019&end=2020";
-    // page 1
+    given(repository.findAllBySymbol("ABC", i1, i2, 0, 10)).willReturn(page1);
+    var baseQuery = base + "/ABC?start=2019&end=2020&offset=0&limit=10";
     // when
     mvc.perform(get(baseQuery))
         // then
         .andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-        .andExpect(header().string("Next", endsWith(baseQuery + "&page=" + stateEncoded1)))
-        .andExpect(content().json("[" + stock1Json + "]"));
-    // page 2
-    // when
-    mvc.perform(get(baseQuery + "&page=" + stateEncoded1))
-        // then
-        .andExpect(status().isOk())
-        .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-        .andExpect(header().doesNotExist("Next"))
-        .andExpect(content().json("[" + stock2Json + "]"));
+        .andExpect(content().json("[" + stock1Json + "," + stock2Json + "]"));
   }
 
   /** Tests that a stock value can be created via a POST request to the appropriate URI. */

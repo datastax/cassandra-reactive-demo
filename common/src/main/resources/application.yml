@@ -18,4 +18,3 @@ driver:
   password:
   keyspace: demo
   consistency: LOCAL_QUORUM
-  pageSize: 10

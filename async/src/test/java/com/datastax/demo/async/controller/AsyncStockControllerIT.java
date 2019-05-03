@@ -84,7 +84,7 @@ class AsyncStockControllerIT {
 
   private URI baseUri;
   private URI stock1Uri;
-  private URI page1Uri;
+  private URI findStocksUri;
 
   @BeforeAll
   void prepareUris() {
@@ -98,10 +98,13 @@ class AsyncStockControllerIT {
             .toUri();
     stock1Uri =
         UriComponentsBuilder.fromUri(baseUri).path("/ABC/20190101000000000").build().toUri();
-    page1Uri =
+    findStocksUri =
         UriComponentsBuilder.fromUri(baseUri)
             .path("/ABC")
-            .query("start=2019&end=2022")
+            .queryParam("start", "2019")
+            .queryParam("end", "2022")
+            .queryParam("offset", "1")
+            .queryParam("limit", "2")
             .build()
             .toUri();
   }
@@ -124,28 +127,17 @@ class AsyncStockControllerIT {
 
   /**
    * Tests that existing stock values for a given symbol and within a given date range can be
-   * retrieved with a GET request to the appropriate URI, page by page.
+   * retrieved with a GET request to the appropriate URI.
    */
   @Test
   void should_find_stocks_by_symbol() {
     // given
     insertStocks(stock1, stock2, stock3);
-    // page 1
     // when
-    RequestEntity<Void> request1 = RequestEntity.get(page1Uri).build();
+    RequestEntity<Void> request1 = RequestEntity.get(findStocksUri).build();
     ResponseEntity<List<Stock>> response1 = template.exchange(request1, LIST_OF_STOCKS);
     // then
-    assertThat(response1.getBody()).isEqualTo(List.of(stock3, stock2));
-    String page2Uri = response1.getHeaders().getFirst("Next");
-    assertThat(page2Uri).isNotNull().startsWith(page1Uri + "&page=");
-    // page 2
-    // when
-    RequestEntity<Void> request2 = RequestEntity.get(URI.create(page2Uri)).build();
-    ResponseEntity<List<Stock>> response2 = template.exchange(request2, LIST_OF_STOCKS);
-    // then
-    assertThat(response2.getBody()).isEqualTo(List.of(stock1));
-    String page3Uri = response2.getHeaders().getFirst("Next");
-    assertThat(page3Uri).isNull();
+    assertThat(response1.getBody()).isEqualTo(List.of(stock2, stock1));
   }
 
   /** Tests that a stock value can be created via a POST request to the appropriate URI. */

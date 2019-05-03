@@ -15,23 +15,18 @@
  */
 package com.datastax.demo.sync.repository;
 
-import com.datastax.demo.common.dto.PagedResults;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
-import java.nio.ByteBuffer;
 import java.time.Instant;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
 /** A DAO that manages the persistence of {@link Stock} instances. */
@@ -63,7 +58,7 @@ public class SyncStockRepository {
    * Saves the given stock value.
    *
    * @param stock The stock value to save.
-   * @return The saved stock.
+   * @return The saved stock value.
    */
   @NonNull
   public Stock save(@NonNull Stock stock) {
@@ -94,40 +89,31 @@ public class SyncStockRepository {
   public Optional<Stock> findById(@NonNull String symbol, @NonNull Instant date) {
     BoundStatement bound = findById.bind(symbol, date);
     ResultSet rs = session.execute(bound);
-    return Optional.ofNullable(rs.one()).map(this::map);
+    return Optional.ofNullable(rs.one()).map(Stock::fromRow);
   }
 
   /**
-   * Retrieves all the stock values for a given symbol in a given date range, page by page.
+   * Retrieves all the stock values for a given symbol in a given date range.
    *
    * @param symbol The stock symbol to find.
    * @param startInclusive The date range start (inclusive).
    * @param endExclusive The date range end (exclusive).
-   * @param pagingState The paging state, or {@code null} to retrieve the first page.
-   * @return A page of results.
+   * @param offset The zero-based index of the first result to return.
+   * @param limit The maximum number of results to return.
+   * @return A {@link Stream} of results.
    */
   @NonNull
-  public PagedResults<Stock> findAllBySymbol(
+  public Stream<Stock> findAllBySymbol(
       @NonNull String symbol,
       @NonNull Instant startInclusive,
       @NonNull Instant endExclusive,
-      @Nullable ByteBuffer pagingState) {
-    BoundStatement bound =
-        findBySymbol.bind(symbol, startInclusive, endExclusive).setPagingState(pagingState);
+      long offset,
+      long limit) {
+    BoundStatement bound = findBySymbol.bind(symbol, startInclusive, endExclusive);
     ResultSet rs = session.execute(bound);
-    Stream<Stock> results =
-        StreamSupport.stream(rs.spliterator(), false)
-            .limit(rs.getAvailableWithoutFetching())
-            .map(this::map);
-    ByteBuffer nextPage = rs.getExecutionInfo().getPagingState();
-    return new PagedResults<>(results, nextPage);
-  }
-
-  @NonNull
-  private Stock map(@NonNull Row row) {
-    var symbol = Objects.requireNonNull(row.getString(0));
-    var date = Objects.requireNonNull(row.getInstant(1));
-    var value = Objects.requireNonNull(row.getBigDecimal(2));
-    return new Stock(symbol, date, value);
+    return StreamSupport.stream(rs.spliterator(), false)
+        .skip(offset)
+        .limit(limit)
+        .map(Stock::fromRow);
   }
 }

@@ -19,9 +19,7 @@ import com.datastax.demo.common.model.Stock;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.Row;
 import java.time.Instant;
-import java.util.Objects;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.lang.NonNull;
@@ -58,7 +56,7 @@ public class ReactiveStockRepository {
    * Saves the given stock value.
    *
    * @param stock The stock value to save.
-   * @return A future that will complete when the operation is completed.
+   * @return A {@link Mono} that will emit the saved stock value, then complete.
    */
   @NonNull
   public Mono<Stock> save(@NonNull Stock stock) {
@@ -71,7 +69,7 @@ public class ReactiveStockRepository {
    *
    * @param symbol The stock symbol to delete.
    * @param date The stock date to delete.
-   * @return A future that will complete when the operation is completed.
+   * @return An empty {@link Mono} that will complete when the operation is completed.
    */
   @NonNull
   public Mono<Void> deleteById(@NonNull String symbol, @NonNull Instant date) {
@@ -84,13 +82,12 @@ public class ReactiveStockRepository {
    *
    * @param symbol The stock symbol to find.
    * @param date The stock date to find.
-   * @return A future that will complete when the operation is completed with the retrieved stock
-   *     value, or empty if not found.
+   * @return A {@link Mono} that will emit the retrieved stock value, if found, then complete.
    */
   @NonNull
   public Mono<Stock> findById(@NonNull String symbol, @NonNull Instant date) {
     BoundStatement bound = findById.bind(symbol, date);
-    return Mono.fromDirect(session.executeReactive(bound)).map(this::map);
+    return Mono.fromDirect(session.executeReactive(bound)).map(Stock::fromRow);
   }
 
   /**
@@ -101,7 +98,7 @@ public class ReactiveStockRepository {
    * @param endExclusive The date range end (exclusive).
    * @param offset The zero-based index of the first result to return.
    * @param limit The maximum number of results to return.
-   * @return A future that will complete when the operation is completed with a page of results.
+   * @return A {@link Flux} that will emit the retrieved stocks, then complete.
    */
   @NonNull
   public Flux<Stock> findAllBySymbol(
@@ -111,14 +108,6 @@ public class ReactiveStockRepository {
       long offset,
       long limit) {
     BoundStatement bound = findBySymbol.bind(symbol, startInclusive, endExclusive);
-    return Flux.from(session.executeReactive(bound)).skip(offset).take(limit).map(this::map);
-  }
-
-  @NonNull
-  private Stock map(@NonNull Row row) {
-    var symbol = Objects.requireNonNull(row.getString(0));
-    var date = Objects.requireNonNull(row.getInstant(1));
-    var value = Objects.requireNonNull(row.getBigDecimal(2));
-    return new Stock(symbol, date, value);
+    return Flux.from(session.executeReactive(bound)).skip(offset).take(limit).map(Stock::fromRow);
   }
 }

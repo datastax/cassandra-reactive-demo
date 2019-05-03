@@ -19,13 +19,11 @@ import com.datastax.demo.common.controller.StockUriHelper;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.demo.sync.repository.SyncStockRepository;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -58,25 +56,20 @@ public class SyncStockController {
    * Lists the available stocks for the given symbol and date range (GET method).
    *
    * @param symbol The symbol to list stocks for.
-   * @param start The start of the date range (inclusive).
-   * @param end The end of the date range (exclusive).
-   * @param pagingState The paging state, to request subsequent pages; if null, the first page will
-   *     be returned.
+   * @param startInclusive The start of the date range (inclusive).
+   * @param endExclusive The end of the date range (exclusive).
+   * @param offset The zero-based index of the first result to return.
+   * @param limit The maximum number of results to return.
    * @return The available stocks for the given symbol and date range.
    */
   @GetMapping("/{symbol}")
-  public ResponseEntity<Stream<Stock>> listStocks(
+  public Stream<Stock> listStocks(
       @PathVariable(name = "symbol") @NonNull String symbol,
-      @RequestParam(name = "start") @NonNull Instant start,
-      @RequestParam(name = "end") @NonNull Instant end,
-      @RequestParam(name = "page", required = false) @Nullable ByteBuffer pagingState) {
-    var results = stockRepository.findAllBySymbol(symbol, start, end, pagingState);
-    var response = ResponseEntity.ok();
-    results
-        .getNextPage()
-        .map(nextPage -> uriHelper.buildNextPageUri(request, nextPage))
-        .ifPresent(uri -> response.header("Next", uri.toString()));
-    return response.body(results.getResults());
+      @RequestParam(name = "start") @NonNull Instant startInclusive,
+      @RequestParam(name = "end") @NonNull Instant endExclusive,
+      @RequestParam(name = "offset") int offset,
+      @RequestParam(name = "limit") int limit) {
+    return stockRepository.findAllBySymbol(symbol, startInclusive, endExclusive, offset, limit);
   }
 
   /**
@@ -104,7 +97,7 @@ public class SyncStockController {
   @PostMapping(value = "")
   public ResponseEntity<Stock> createStock(@RequestBody Stock stock) {
     stock = stockRepository.save(stock);
-    URI location = uriHelper.buildStockDetailsUri(request, stock);
+    URI location = uriHelper.buildDetailsUri(request, stock);
     return ResponseEntity.created(location).body(stock);
   }
 

@@ -15,6 +15,7 @@
  */
 package com.datastax.demo.common.model;
 
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
@@ -24,6 +25,14 @@ import org.springframework.lang.NonNull;
 
 /** The value of a stock symbol at a point in time. */
 public class Stock {
+
+  @NonNull
+  public static Stock fromRow(Row row) {
+    var symbol = Objects.requireNonNull(row.getString(0));
+    var date = Objects.requireNonNull(row.getInstant(1));
+    var value = Objects.requireNonNull(row.getBigDecimal(2));
+    return new Stock(symbol, date, value);
+  }
 
   private final String symbol;
 

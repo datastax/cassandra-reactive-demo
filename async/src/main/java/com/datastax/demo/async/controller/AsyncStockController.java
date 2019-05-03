@@ -21,13 +21,11 @@ import com.datastax.demo.async.repository.AsyncStockRepository;
 import com.datastax.demo.common.controller.StockUriHelper;
 import com.datastax.demo.common.model.Stock;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,31 +55,27 @@ public class AsyncStockController {
    * Lists the available stocks for the given symbol and date range (GET method).
    *
    * @param symbol The symbol to list stocks for.
-   * @param start The start of the date range (inclusive).
-   * @param end The end of the date range (exclusive).
-   * @param pagingState The paging state, to request subsequent pages; if null, the first page will
-   *     be returned.
-   * @param request The current HTTP request.
+   * @param startInclusive The start of the date range (inclusive).
+   * @param endExclusive The end of the date range (exclusive).
+   * @param offset The zero-based index of the first result to return.
+   * @param limit The maximum number of results to return.
    * @return The available stocks for the given symbol and date range.
    */
   @GetMapping("/{symbol}")
   public DeferredResult<ResponseEntity<Stream<Stock>>> listStocks(
       @PathVariable(name = "symbol") @NonNull String symbol,
-      @RequestParam(name = "start") @NonNull Instant start,
-      @RequestParam(name = "end") @NonNull Instant end,
-      @RequestParam(name = "page", required = false) @Nullable ByteBuffer pagingState,
+      @RequestParam(name = "start") @NonNull Instant startInclusive,
+      @RequestParam(name = "end") @NonNull Instant endExclusive,
+      @RequestParam(name = "offset") int offset,
+      @RequestParam(name = "limit") int limit,
       @NonNull HttpServletRequest request) {
     var deferred = new DeferredResult<ResponseEntity<Stream<Stock>>>();
     stockRepository
-        .findAllBySymbol(symbol, start, end, pagingState)
+        .findAllBySymbol(symbol, startInclusive, endExclusive, offset, limit)
         .whenComplete(
-            (page, error) -> {
+            (results, error) -> {
               if (error == null) {
-                var response = ResponseEntity.ok();
-                page.getNextPage()
-                    .map(nextPage -> uriHelper.buildNextPageUri(request, nextPage))
-                    .ifPresent(uri -> response.header("Next", uri.toString()));
-                deferred.setResult(response.body(page.getResults()));
+                deferred.setResult(ResponseEntity.ok(results));
               } else {
                 deferred.setErrorResult(error);
               }
@@ -106,7 +100,9 @@ public class AsyncStockController {
             (stock, error) -> {
               if (error == null) {
                 var response =
-                    stock.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+                    stock
+                        .map(body -> ResponseEntity.ok(body))
+                        .orElse(ResponseEntity.notFound().build());
                 deferred.setResult(response);
               } else {
                 deferred.setErrorResult(error);
@@ -131,7 +127,7 @@ public class AsyncStockController {
         .whenComplete(
             (created, error) -> {
               if (error == null) {
-                URI location = uriHelper.buildStockDetailsUri(request, created);
+                URI location = uriHelper.buildDetailsUri(request, created);
                 deferred.setResult(ResponseEntity.created(location).body(created));
               } else {
                 deferred.setErrorResult(error);
@@ -160,7 +156,11 @@ public class AsyncStockController {
             maybeFound ->
                 maybeFound
                     .map(found -> new Stock(found.getSymbol(), found.getDate(), stock.getValue()))
-                    .map(toUpdate -> stockRepository.save(toUpdate).thenApply(ResponseEntity::ok))
+                    .map(
+                        toUpdate ->
+                            stockRepository
+                                .save(toUpdate)
+                                .thenApply(body -> ResponseEntity.ok(body)))
                     .orElse(completedStage(ResponseEntity.notFound().build()))
                     .whenComplete(
                         (response, error) -> {

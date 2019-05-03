@@ -90,9 +90,6 @@ public class DriverConfiguration {
   @Value("${driver.consistency:LOCAL_QUORUM}")
   private String consistency;
 
-  @Value("${driver.pageSize:10}")
-  private int pageSize;
-
   @Value("${driver.username}")
   private String dseUsername;
 
@@ -119,8 +116,7 @@ public class DriverConfiguration {
   public ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder() {
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
         DriverConfigLoader.programmaticBuilder()
-            .withString(DefaultDriverOption.REQUEST_CONSISTENCY, consistency)
-            .withInt(DefaultDriverOption.REQUEST_PAGE_SIZE, pageSize);
+            .withString(DefaultDriverOption.REQUEST_CONSISTENCY, consistency);
     if (!StringUtils.isEmpty(dseUsername) && !StringUtils.isEmpty(dsePassword)) {
       configLoaderBuilder =
           configLoaderBuilder

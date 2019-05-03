@@ -133,7 +133,7 @@ class ReactiveStockControllerTest {
     given(repository.save(stock1)).willReturn(Mono.just(stock1));
     // when
     var result =
-        mvc.perform(post(base + "/").contentType(APPLICATION_JSON).content(stock1Json)).andReturn();
+        mvc.perform(post(base).contentType(APPLICATION_JSON).content(stock1Json)).andReturn();
     mvc.perform(asyncDispatch(result))
         // then
         .andExpect(status().isCreated())

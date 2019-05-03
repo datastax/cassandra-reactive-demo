@@ -136,7 +136,7 @@ class AsyncStockControllerTest {
     given(repository.save(stock1)).willReturn(completedFuture(stock1));
     // when
     var result =
-        mvc.perform(post(base + "/").contentType(APPLICATION_JSON).content(stock1Json)).andReturn();
+        mvc.perform(post(base).contentType(APPLICATION_JSON).content(stock1Json)).andReturn();
     mvc.perform(asyncDispatch(result))
         // then
         .andExpect(status().isCreated())

@@ -113,25 +113,25 @@ public class StockQueriesConfiguration {
   }
 
   @Bean("stocks.prepared.insert")
-  public PreparedStatement insertPrepared(
+  public PreparedStatement prepareInsert(
       DseSession session, @Qualifier("stocks.simple.insert") SimpleStatement stockInsert) {
     return session.prepare(stockInsert);
   }
 
   @Bean("stocks.prepared.deleteById")
-  public PreparedStatement deleteByIdPrepared(
+  public PreparedStatement prepareDeleteById(
       DseSession session, @Qualifier("stocks.simple.deleteById") SimpleStatement stockDeleteById) {
     return session.prepare(stockDeleteById);
   }
 
   @Bean("stocks.prepared.findById")
-  public PreparedStatement findByIdPrepared(
+  public PreparedStatement prepareFindById(
       DseSession session, @Qualifier("stocks.simple.findById") SimpleStatement stockFindById) {
     return session.prepare(stockFindById);
   }
 
   @Bean("stocks.prepared.findBySymbol")
-  public PreparedStatement findBySymbolPrepared(
+  public PreparedStatement prepareFindBySymbol(
       DseSession session,
       @Qualifier("stocks.simple.findBySymbol") SimpleStatement stockFindBySymbol) {
     return session.prepare(stockFindBySymbol);

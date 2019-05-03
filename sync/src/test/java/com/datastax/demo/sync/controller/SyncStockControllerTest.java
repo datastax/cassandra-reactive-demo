@@ -131,7 +131,7 @@ class SyncStockControllerTest {
     // given
     given(repository.save(stock1)).willReturn(stock1);
     // when
-    mvc.perform(post(base + "/").contentType(APPLICATION_JSON).content(stock1Json))
+    mvc.perform(post(base).contentType(APPLICATION_JSON).content(stock1Json))
         // then
         .andExpect(status().isCreated())
         .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))

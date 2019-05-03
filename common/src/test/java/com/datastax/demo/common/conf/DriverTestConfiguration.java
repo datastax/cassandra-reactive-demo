@@ -59,7 +59,7 @@ public class DriverTestConfiguration extends DriverConfiguration {
   }
 
   /**
-   * Creaes a {@link ProgrammaticDriverConfigLoaderBuilder} bean that does not emit warnings when
+   * Creates a {@link ProgrammaticDriverConfigLoaderBuilder} bean that does not emit warnings when
    * issuing USE statements (this is an anti-pattern in production, but acceptable in integration
    * tests).
    *

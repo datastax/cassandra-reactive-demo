@@ -72,10 +72,14 @@ class ReactiveStockControllerIT {
   private Instant i1 = Instant.parse("2019-01-01T00:00:00Z");
   private Instant i2 = Instant.parse("2020-01-01T00:00:00Z");
   private Instant i3 = Instant.parse("2021-01-01T00:00:00Z");
+  private Instant i4 = Instant.parse("2022-01-01T00:00:00Z");
+  private Instant i5 = Instant.parse("2023-01-01T00:00:00Z");
 
   private Stock stock1 = new Stock("ABC", i1, BigDecimal.valueOf(42.0));
   private Stock stock2 = new Stock("ABC", i2, BigDecimal.valueOf(43.0));
   private Stock stock3 = new Stock("ABC", i3, BigDecimal.valueOf(44.0));
+  private Stock stock4 = new Stock("ABC", i4, BigDecimal.valueOf(45.0));
+  private Stock stock5 = new Stock("ABC", i5, BigDecimal.valueOf(46.0));
 
   private URI baseUri;
   private URI stock1Uri;
@@ -96,8 +100,8 @@ class ReactiveStockControllerIT {
     findStocksUri =
         UriComponentsBuilder.fromUri(baseUri)
             .path("/ABC")
-            .queryParam("start", "2019")
-            .queryParam("end", "2022")
+            .queryParam("start", "2000")
+            .queryParam("end", "2100")
             .queryParam("offset", "1")
             .queryParam("limit", "2")
             .build()
@@ -153,7 +157,7 @@ class ReactiveStockControllerIT {
   @Test
   void should_find_stocks_by_symbol() {
     // given
-    insertStocks(stock1, stock2, stock3);
+    insertStocks(stock1, stock2, stock3, stock4, stock5);
     // when
     webTestClient
         .get()
@@ -165,7 +169,7 @@ class ReactiveStockControllerIT {
         .expectHeader()
         .contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
         .expectBodyList(Stock.class)
-        .isEqualTo(List.of(stock2, stock1));
+        .isEqualTo(List.of(stock4, stock3));
   }
 
   /** Tests that a stock value can be created via a POST request to the appropriate URI. */

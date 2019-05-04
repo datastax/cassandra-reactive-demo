@@ -73,7 +73,12 @@ public class DriverTestConfiguration extends DriverConfiguration {
   @Override
   public ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder() {
     return super.configLoaderBuilder()
-        .withBoolean(DefaultDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false);
+        // Do not warn on keyspace changes since we are going to set the keyspace after the session
+        // is created
+        .withBoolean(DefaultDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false)
+        // Artificially set the page size to a ridiculously low value to make sure integration tests
+        // exercise pagination
+        .withInt(DefaultDriverOption.REQUEST_PAGE_SIZE, 2);
   }
 
   /**

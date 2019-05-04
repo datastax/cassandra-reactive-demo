@@ -18,13 +18,17 @@ package com.datastax.demo.async.repository;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.AsyncPagingIterable;
+import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.lang.NonNull;
@@ -114,13 +118,38 @@ public class AsyncStockRepository {
       long offset,
       long limit) {
     BoundStatement bound = findBySymbol.bind(symbol, startInclusive, endExclusive);
-    return session
-        .executeAsync(bound)
-        .thenApply(
-            rs ->
-                StreamSupport.stream(rs.currentPage().spliterator(), false)
-                    .skip(offset)
-                    .limit(limit)
-                    .map(Stock::fromRow));
+    CompletionStage<AsyncResultSet> stage = session.executeAsync(bound);
+    return stage
+        .thenCompose(first -> new RowAccumulator(first, offset, limit))
+        .thenApply(rows -> rows.stream().map(Stock::fromRow));
+  }
+
+  private static class RowAccumulator extends CompletableFuture<List<Row>> {
+
+    private final List<Row> rows = new ArrayList<>();
+    private long offset;
+    private long limit;
+
+    RowAccumulator(AsyncResultSet first, long offset, long limit) {
+      this.offset = offset;
+      this.limit = limit;
+      consumePage(first);
+    }
+
+    private void consumePage(AsyncResultSet page) {
+      for (Row row : page.currentPage()) {
+        if (offset > 0) {
+          offset--;
+        } else if (limit > 0) {
+          rows.add(row);
+          limit--;
+        }
+      }
+      if (page.hasMorePages() && limit > 0) {
+        page.fetchNextPage().thenAccept(this::consumePage);
+      } else {
+        complete(rows);
+      }
+    }
   }
 }

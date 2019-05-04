@@ -114,6 +114,7 @@ class AsyncStockRepositoryTest {
     given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
     List<Row> rows = List.of(row1, row2);
     given(resultSet.currentPage()).willReturn(rows);
+    given(resultSet.hasMorePages()).willReturn(false);
     given(row1.getString(0)).willReturn(stock1.getSymbol());
     given(row1.getInstant(1)).willReturn(stock1.getDate());
     given(row1.getBigDecimal(2)).willReturn(stock1.getValue());

@@ -16,16 +16,19 @@
     limitations under the License.
 
 -->
-<configuration scan="true">
+<configuration>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{HH:mm:ss.SSS} %magenta(%-5level) %cyan(%-45logger) : %msg%n</pattern>
+      <pattern>%highlight(%-5level) %cyan(%-45logger{45}) : %msg%n</pattern>
     </encoder>
   </appender>
-  <logger name="com.datastax.demo" level="DEBUG" additivity="false">
-    <appender-ref ref="STDOUT"/>
-  </logger>
-  <root level="ERROR">
+  <!-- This demo application root logger -->
+  <logger name="com.datastax.demo" level="INFO"/>
+  <!-- DataStax OSS Java Driver root logger -->
+  <logger name="com.datastax.oss" level="INFO"/>
+  <!-- DataStax DSE Java Driver root logger -->
+  <logger name="com.datastax.dse" level="INFO"/>
+  <root level="WARN">
     <appender-ref ref="STDOUT"/>
   </root>
 </configuration>

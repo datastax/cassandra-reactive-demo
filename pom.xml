@@ -30,10 +30,10 @@
   <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <modules>
-    <module>common</module>
-    <module>sync</module>
-    <module>async</module>
-    <module>reactive</module>
+    <module>0_common</module>
+    <module>1_sync</module>
+    <module>2_async</module>
+    <module>3_reactive</module>
   </modules>
   <name>Cassandra Reactive Demo</name>
   <description>Demo application that interacts with Apache Cassandra® using the DSE Java driver and reactive programming</description>

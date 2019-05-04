@@ -15,7 +15,7 @@ server:
 driver:
   contactPoints: 127.0.0.1
   port: 9042
-  localdc: datacenter1
+  localdc: Cassandra
   username:
   password:
   keyspace: demo

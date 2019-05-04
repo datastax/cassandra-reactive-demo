@@ -4,6 +4,8 @@
 spring:
   application:
     name: Cassandra Reactive Demo
+  main:
+    banner-mode: 'OFF'
 server:
   port: 8082
 

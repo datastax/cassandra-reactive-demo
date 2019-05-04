@@ -1,2 +1,0 @@
-
-=== @project.parent.name@ version @project.version@ ===

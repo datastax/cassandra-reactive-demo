@@ -133,7 +133,7 @@ public class SyncStockController {
       @RequestBody Stock stock) {
     return stockRepository
         .findById(symbol, date)
-        .map(current -> new Stock(current.getSymbol(), current.getDate(), stock.getValue()))
+        .map(found -> new Stock(found.getSymbol(), found.getDate(), stock.getValue()))
         .map(stockRepository::save)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());

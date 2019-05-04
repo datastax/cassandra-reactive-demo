@@ -126,9 +126,9 @@ public class AsyncStockRepository {
 
   private static class RowAccumulator extends CompletableFuture<List<Row>> {
 
-    private final List<Row> rows = new ArrayList<>();
-    private long offset;
-    private long limit;
+    final List<Row> rows = new ArrayList<>();
+    long offset;
+    long limit;
 
     RowAccumulator(AsyncResultSet first, long offset, long limit) {
       this.offset = offset;
@@ -136,7 +136,7 @@ public class AsyncStockRepository {
       consumePage(first);
     }
 
-    private void consumePage(AsyncResultSet page) {
+    void consumePage(AsyncResultSet page) {
       for (Row row : page.currentPage()) {
         if (offset > 0) {
           offset--;

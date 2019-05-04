@@ -280,10 +280,13 @@ limitations under the License.]]></inlineHeader>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <configuration>
+          <!-- Exclude Spring application and configuration classes -->
           <excludes>
             <exclude>**/*Application*</exclude>
             <exclude>**/*Configuration*</exclude>
           </excludes>
+          <!-- Combine unit and integration test results together -->
+          <destFile>${project.build.directory}/jacoco.exec</destFile>
         </configuration>
         <executions>
           <execution>

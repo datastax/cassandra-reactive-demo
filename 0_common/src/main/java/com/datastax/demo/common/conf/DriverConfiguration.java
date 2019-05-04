@@ -17,10 +17,10 @@ package com.datastax.demo.common.conf;
 
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.DseSessionBuilder;
+import com.datastax.dse.driver.api.core.config.DseDriverConfigLoader;
 import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import java.net.InetSocketAddress;
 import java.util.List;
@@ -115,7 +115,7 @@ public class DriverConfiguration {
   @Bean
   public ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder() {
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
-        DriverConfigLoader.programmaticBuilder()
+        DseDriverConfigLoader.programmaticBuilder()
             .withString(DefaultDriverOption.REQUEST_CONSISTENCY, consistency);
     if (!StringUtils.isEmpty(dseUsername) && !StringUtils.isEmpty(dsePassword)) {
       configLoaderBuilder =

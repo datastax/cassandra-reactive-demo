@@ -38,6 +38,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -126,6 +127,19 @@ class SyncStockControllerIT {
   }
 
   /**
+   * Tests that a non-existing stock value cannot be retrieved with a GET request to its specific
+   * URI.
+   */
+  @Test
+  void should_not_find_stock_by_id() {
+    // when
+    ResponseEntity<Stock> actual = template.getForEntity(stock1Uri, Stock.class);
+    // then
+    assertThat(actual.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(actual.hasBody()).isFalse();
+  }
+
+  /**
    * Tests that existing stock values for a given symbol and within a given date range can be
    * retrieved with a GET request to the appropriate URI.
    */
@@ -156,7 +170,7 @@ class SyncStockControllerIT {
             });
   }
 
-  /** Tests that an existing stock value can be updated via a PUT request to the appropriate URI. */
+  /** Tests that an existing stock value can be updated via a PUT request to its specific URI. */
   @Test
   void should_update_stock() {
     // given
@@ -177,8 +191,25 @@ class SyncStockControllerIT {
   }
 
   /**
-   * Tests that an existing stock value can be deleted via a DELETE request to the appropriate URI.
+   * Tests that a non-existing stock value cannot be updated via a PUT request to the appropriate
+   * URI.
    */
+  @Test
+  void should_not_update_stock() {
+    // given
+    BigDecimal newValue = BigDecimal.valueOf(42.42);
+    Stock updated = new Stock(stock1.getSymbol(), stock1.getDate(), newValue);
+    // when
+    RequestEntity<Stock> request = RequestEntity.put(stock1Uri).body(updated);
+    ResponseEntity<Stock> response = template.exchange(request, Stock.class);
+    // then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(response.hasBody()).isFalse();
+    assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
+        .isEmpty();
+  }
+
+  /** Tests that an existing stock value can be deleted via a DELETE request to its specific URI. */
   @Test
   void should_delete_stock() {
     // given

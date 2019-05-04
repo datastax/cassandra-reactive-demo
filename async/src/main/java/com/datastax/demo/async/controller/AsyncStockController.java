@@ -15,18 +15,19 @@
  */
 package com.datastax.demo.async.controller;
 
-import static java.util.concurrent.CompletableFuture.completedStage;
-
 import com.datastax.demo.async.repository.AsyncStockRepository;
 import com.datastax.demo.common.controller.StockUriHelper;
 import com.datastax.demo.common.model.Stock;
+import com.datastax.oss.driver.api.core.DriverException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,6 +35,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
 
@@ -52,6 +54,19 @@ public class AsyncStockController {
   }
 
   /**
+   * Converts {@link DriverException}s into HTTP 500 error codes and outputs the error message as
+   * the response body.
+   *
+   * @param e The {@link DriverException}.
+   * @return The error message to be used as response body.
+   */
+  @ExceptionHandler(Exception.class)
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  public String errorHandler(DriverException e) {
+    return e.getMessage();
+  }
+
+  /**
    * Lists the available stocks for the given symbol and date range (GET method).
    *
    * @param symbol The symbol to list stocks for.
@@ -59,6 +74,7 @@ public class AsyncStockController {
    * @param endExclusive The end of the date range (exclusive).
    * @param offset The zero-based index of the first result to return.
    * @param limit The maximum number of results to return.
+   * @param request The current HTTP request.
    * @return The available stocks for the given symbol and date range.
    */
   @GetMapping("/{symbol}")
@@ -100,9 +116,7 @@ public class AsyncStockController {
             (stock, error) -> {
               if (error == null) {
                 var response =
-                    stock
-                        .map(body -> ResponseEntity.ok(body))
-                        .orElse(ResponseEntity.notFound().build());
+                    stock.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
                 deferred.setResult(response);
               } else {
                 deferred.setErrorResult(error);
@@ -152,24 +166,28 @@ public class AsyncStockController {
     var deferred = new DeferredResult<ResponseEntity<Stock>>();
     stockRepository
         .findById(symbol, date)
-        .thenApply(
-            maybeFound ->
+        .whenComplete(
+            (maybeFound, error1) -> {
+              if (error1 == null) {
                 maybeFound
                     .map(found -> new Stock(found.getSymbol(), found.getDate(), stock.getValue()))
-                    .map(
+                    .ifPresentOrElse(
                         toUpdate ->
                             stockRepository
                                 .save(toUpdate)
-                                .thenApply(body -> ResponseEntity.ok(body)))
-                    .orElse(completedStage(ResponseEntity.notFound().build()))
-                    .whenComplete(
-                        (response, error) -> {
-                          if (error == null) {
-                            deferred.setResult(response);
-                          } else {
-                            deferred.setErrorResult(error);
-                          }
-                        }));
+                                .whenComplete(
+                                    (found, error2) -> {
+                                      if (error2 == null) {
+                                        deferred.setResult(ResponseEntity.ok(found));
+                                      } else {
+                                        deferred.setErrorResult(error2);
+                                      }
+                                    }),
+                        () -> deferred.setResult(ResponseEntity.notFound().build()));
+              } else {
+                deferred.setErrorResult(error1);
+              }
+            });
     return deferred;
   }
 

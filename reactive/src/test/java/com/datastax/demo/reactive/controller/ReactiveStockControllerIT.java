@@ -79,7 +79,7 @@ class ReactiveStockControllerIT {
 
   private URI baseUri;
   private URI stock1Uri;
-  private URI page1Uri;
+  private URI findStocksUri;
 
   @BeforeAll
   void prepareUris() {
@@ -93,13 +93,13 @@ class ReactiveStockControllerIT {
             .toUri();
     stock1Uri =
         UriComponentsBuilder.fromUri(baseUri).path("/ABC/20190101000000000").build().toUri();
-    page1Uri =
+    findStocksUri =
         UriComponentsBuilder.fromUri(baseUri)
             .path("/ABC")
             .queryParam("start", "2019")
             .queryParam("end", "2022")
-            .queryParam("offset", "0")
-            .queryParam("limit", "10")
+            .queryParam("offset", "1")
+            .queryParam("limit", "2")
             .build()
             .toUri();
   }
@@ -129,6 +129,24 @@ class ReactiveStockControllerIT {
   }
 
   /**
+   * Tests that a non-existing stock value cannot be retrieved with a GET request to its specific
+   * URI.
+   */
+  @Test
+  void should_not_find_stock_by_id() {
+    // when
+    webTestClient
+        .get()
+        .uri(stock1Uri)
+        .exchange()
+        // then
+        .expectStatus()
+        .isNotFound()
+        .expectBody()
+        .isEmpty();
+  }
+
+  /**
    * Tests that existing stock values for a given symbol and within a given date range can be
    * retrieved with a GET request to the appropriate URI.
    */
@@ -139,7 +157,7 @@ class ReactiveStockControllerIT {
     // when
     webTestClient
         .get()
-        .uri(page1Uri)
+        .uri(findStocksUri)
         .exchange()
         // then
         .expectStatus()
@@ -147,7 +165,7 @@ class ReactiveStockControllerIT {
         .expectHeader()
         .contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
         .expectBodyList(Stock.class)
-        .isEqualTo(List.of(stock3, stock2, stock1));
+        .isEqualTo(List.of(stock2, stock1));
   }
 
   /** Tests that a stock value can be created via a POST request to the appropriate URI. */
@@ -176,7 +194,7 @@ class ReactiveStockControllerIT {
             });
   }
 
-  /** Tests that an existing stock value can be updated via a PUT request to the appropriate URI. */
+  /** Tests that an existing stock value can be updated via a PUT request to its specific URI. */
   @Test
   void should_update_stock() {
     // given
@@ -205,8 +223,30 @@ class ReactiveStockControllerIT {
   }
 
   /**
-   * Tests that an existing stock value can be deleted via a DELETE request to the appropriate URI.
+   * Tests that a non-existing stock value cannot be updated via a PUT request to the appropriate
+   * URI.
    */
+  @Test
+  void should_not_update_stock() {
+    // given
+    BigDecimal newValue = BigDecimal.valueOf(42.42);
+    Stock updated = new Stock(stock1.getSymbol(), stock1.getDate(), newValue);
+    // when
+    webTestClient
+        .put()
+        .uri(stock1Uri)
+        .syncBody(updated)
+        .exchange()
+        // then
+        .expectStatus()
+        .isNotFound()
+        .expectBody()
+        .isEmpty();
+    assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
+        .isEmpty();
+  }
+
+  /** Tests that an existing stock value can be deleted via a DELETE request to its specific URI. */
   @Test
   void should_delete_stock() {
     // given

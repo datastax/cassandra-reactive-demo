@@ -126,6 +126,10 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.1.1</version>
+        </plugin>
+        <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.8.0</version>
         </plugin>
@@ -169,14 +173,6 @@
           <version>2.4</version>
         </plugin>
         <plugin>
-          <artifactId>maven-deploy-plugin</artifactId>
-          <version>2.7</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-release-plugin</artifactId>
-          <version>2.3.2</version>
-        </plugin>
-        <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
           <version>0.8.3</version>
@@ -188,10 +184,6 @@
       </plugins>
     </pluginManagement>
     <plugins>
-      <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.1.1</version>
-      </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
@@ -287,17 +279,35 @@ limitations under the License.]]></inlineHeader>
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>**/*Application*</exclude>
+            <exclude>**/*Configuration*</exclude>
+          </excludes>
+        </configuration>
         <executions>
           <execution>
+            <id>unit-tests-coverage</id>
             <goals>
               <goal>prepare-agent</goal>
             </goals>
           </execution>
           <execution>
-            <id>report</id>
-            <phase>prepare-package</phase>
+            <id>integration-tests-coverage</id>
+            <goals>
+              <goal>prepare-agent-integration</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report-unit-tests-coverage</id>
             <goals>
               <goal>report</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report-integration-tests-coverage</id>
+            <goals>
+              <goal>report-integration</goal>
             </goals>
           </execution>
         </executions>
@@ -313,10 +323,6 @@ limitations under the License.]]></inlineHeader>
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
-            <configuration>
-              <parallel>classes</parallel>
-              <threadCountClasses>8</threadCountClasses>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -346,16 +352,6 @@ limitations under the License.]]></inlineHeader>
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <configuration>
-          <tagNameFormat>@{project.version}</tagNameFormat>
-          <autoVersionSubmodules>true</autoVersionSubmodules>
-          <useReleaseProfile>false</useReleaseProfile>
-          <releaseProfiles>release</releaseProfiles>
-          <goals>deploy</goals>
-        </configuration>
       </plugin>
     </plugins>
   </build>

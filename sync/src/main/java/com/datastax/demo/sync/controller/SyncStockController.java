@@ -18,13 +18,16 @@ package com.datastax.demo.sync.controller;
 import com.datastax.demo.common.controller.StockUriHelper;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.demo.sync.repository.SyncStockRepository;
+import com.datastax.oss.driver.api.core.DriverException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +35,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** A REST controller that performs CRUD actions on {@link Stock} instances. */
@@ -50,6 +54,19 @@ public class SyncStockController {
     this.stockRepository = stockRepository;
     this.uriHelper = uriHelper;
     this.request = request;
+  }
+
+  /**
+   * Converts {@link DriverException}s into HTTP 500 error codes and outputs the error message as
+   * the response body.
+   *
+   * @param e The {@link DriverException}.
+   * @return The error message to be used as response body.
+   */
+  @ExceptionHandler(Exception.class)
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  public String errorHandler(DriverException e) {
+    return e.getMessage();
   }
 
   /**

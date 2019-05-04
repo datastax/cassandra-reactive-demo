@@ -76,25 +76,25 @@ import org.springframework.util.StringUtils;
 public class DriverConfiguration {
 
   @Value("#{'${driver.contactPoints}'.split(',')}")
-  private List<String> contactPoints;
+  protected List<String> contactPoints;
 
   @Value("${driver.port:9042}")
-  private int port;
+  protected int port;
 
   @Value("${driver.localdc}")
-  private String localDc;
+  protected String localDc;
 
   @Value("${driver.keyspace}")
-  private String keyspaceName;
+  protected String keyspaceName;
 
   @Value("${driver.consistency:LOCAL_QUORUM}")
-  private String consistency;
+  protected String consistency;
 
   @Value("${driver.username}")
-  private String dseUsername;
+  protected String dseUsername;
 
   @Value("${driver.password}")
-  private String dsePassword;
+  protected String dsePassword;
 
   /**
    * Returns the keyspace to connect to. The keyspace specified here must exist.

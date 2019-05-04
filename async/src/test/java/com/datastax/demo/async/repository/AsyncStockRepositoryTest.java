@@ -41,7 +41,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * <p>This unit test does not require a Spring application context to be created.
  */
 @ExtendWith(MockitoExtension.class)
-@SuppressWarnings("FutureReturnValueIgnored")
 class AsyncStockRepositoryTest {
 
   @Mock private DseSession session;

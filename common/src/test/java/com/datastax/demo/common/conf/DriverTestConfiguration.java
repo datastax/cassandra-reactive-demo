@@ -17,6 +17,7 @@ package com.datastax.demo.common.conf;
 
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.DseSessionBuilder;
+import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
@@ -26,6 +27,8 @@ import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.testinfra.session.SessionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -43,6 +46,8 @@ import org.springframework.lang.NonNull;
 @Profile("integration-test")
 @Configuration
 public class DriverTestConfiguration extends DriverConfiguration {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(DriverTestConfiguration.class);
 
   @Autowired
   @Qualifier("stocks.simple.create")
@@ -86,7 +91,16 @@ public class DriverTestConfiguration extends DriverConfiguration {
       @NonNull DseSessionBuilder sessionBuilder,
       @NonNull ProgrammaticDriverConfigLoaderBuilder driverConfigLoaderBuilder,
       @Qualifier("keyspace") @NonNull CqlIdentifier keyspace) {
-    return sessionBuilder.withConfigLoader(driverConfigLoaderBuilder.build()).build();
+    try {
+      return sessionBuilder.withConfigLoader(driverConfigLoaderBuilder.build()).build();
+    } catch (AllNodesFailedException e) {
+      LOGGER.error(
+          String.format(
+              "Could not reach any contact point, "
+                  + "make sure you've provided valid addresses (%s) and port (%d).",
+              contactPoints, port));
+      throw e;
+    }
   }
 
   /**

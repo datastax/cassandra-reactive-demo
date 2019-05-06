@@ -78,7 +78,12 @@ public class DriverTestConfiguration extends DriverConfiguration {
         .withBoolean(DefaultDriverOption.REQUEST_WARN_IF_SET_KEYSPACE, false)
         // Artificially set the page size to a ridiculously low value to make sure integration tests
         // exercise pagination
-        .withInt(DefaultDriverOption.REQUEST_PAGE_SIZE, 2);
+        .withInt(DefaultDriverOption.REQUEST_PAGE_SIZE, 2)
+        // Disable metadata entirely, we don't need them and disabling them speeds up tests
+        .withBoolean(DefaultDriverOption.METADATA_SCHEMA_ENABLED, false)
+        // Set quiet period to zero to speed up tests
+        .withInt(DefaultDriverOption.NETTY_IO_SHUTDOWN_QUIET_PERIOD, 0)
+        .withInt(DefaultDriverOption.NETTY_ADMIN_SHUTDOWN_QUIET_PERIOD, 0);
   }
 
   /**

@@ -120,17 +120,17 @@ public class AsyncStockRepository {
     BoundStatement bound = findBySymbol.bind(symbol, startInclusive, endExclusive);
     CompletionStage<AsyncResultSet> stage = session.executeAsync(bound);
     return stage
-        .thenCompose(first -> new RowAccumulator(first, offset, limit))
+        .thenCompose(first -> new RowCollector(first, offset, limit))
         .thenApply(rows -> rows.stream().map(Stock::fromRow));
   }
 
-  private static class RowAccumulator extends CompletableFuture<List<Row>> {
+  private static class RowCollector extends CompletableFuture<List<Row>> {
 
     final List<Row> rows = new ArrayList<>();
     long offset;
     long limit;
 
-    RowAccumulator(AsyncResultSet first, long offset, long limit) {
+    RowCollector(AsyncResultSet first, long offset, long limit) {
       this.offset = offset;
       this.limit = limit;
       consumePage(first);

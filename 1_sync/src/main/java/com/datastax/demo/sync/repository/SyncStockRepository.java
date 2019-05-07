@@ -20,8 +20,10 @@ import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,18 +42,21 @@ public class SyncStockRepository {
   private final PreparedStatement deleteById;
   private final PreparedStatement findById;
   private final PreparedStatement findBySymbol;
+  private final Function<Row, Stock> rowMapper;
 
   public SyncStockRepository(
       DseSession session,
       @Qualifier("stocks.prepared.insert") PreparedStatement insert,
       @Qualifier("stocks.prepared.deleteById") PreparedStatement deleteById,
       @Qualifier("stocks.prepared.findById") PreparedStatement findById,
-      @Qualifier("stocks.prepared.findBySymbol") PreparedStatement findBySymbol) {
+      @Qualifier("stocks.prepared.findBySymbol") PreparedStatement findBySymbol,
+      Function<Row, Stock> rowMapper) {
     this.session = session;
     this.insert = insert;
     this.deleteById = deleteById;
     this.findById = findById;
     this.findBySymbol = findBySymbol;
+    this.rowMapper = rowMapper;
   }
 
   /**
@@ -89,7 +94,7 @@ public class SyncStockRepository {
   public Optional<Stock> findById(@NonNull String symbol, @NonNull Instant date) {
     BoundStatement bound = findById.bind(symbol, date);
     ResultSet rs = session.execute(bound);
-    return Optional.ofNullable(rs.one()).map(Stock::fromRow);
+    return Optional.ofNullable(rs.one()).map(rowMapper);
   }
 
   /**
@@ -111,9 +116,7 @@ public class SyncStockRepository {
       long limit) {
     BoundStatement bound = findBySymbol.bind(symbol, startInclusive, endExclusive);
     ResultSet rs = session.execute(bound);
-    return StreamSupport.stream(rs.spliterator(), false)
-        .skip(offset)
-        .limit(limit)
-        .map(Stock::fromRow);
+    Stream<Row> stream = StreamSupport.stream(rs.spliterator(), false);
+    return stream.skip(offset).limit(limit).map(rowMapper);
   }
 }

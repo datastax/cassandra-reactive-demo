@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
@@ -45,18 +46,21 @@ public class AsyncStockRepository {
   private final PreparedStatement deleteById;
   private final PreparedStatement findById;
   private final PreparedStatement findBySymbol;
+  private final Function<Row, Stock> rowMapper;
 
   public AsyncStockRepository(
       DseSession session,
       @Qualifier("stocks.prepared.insert") PreparedStatement insert,
       @Qualifier("stocks.prepared.deleteById") PreparedStatement deleteById,
       @Qualifier("stocks.prepared.findById") PreparedStatement findById,
-      @Qualifier("stocks.prepared.findBySymbol") PreparedStatement findBySymbol) {
+      @Qualifier("stocks.prepared.findBySymbol") PreparedStatement findBySymbol,
+      Function<Row, Stock> rowMapper) {
     this.session = session;
     this.insert = insert;
     this.deleteById = deleteById;
     this.findById = findById;
     this.findBySymbol = findBySymbol;
+    this.rowMapper = rowMapper;
   }
 
   /**
@@ -68,7 +72,8 @@ public class AsyncStockRepository {
   @NonNull
   public CompletionStage<Stock> save(@NonNull Stock stock) {
     BoundStatement bound = insert.bind(stock.getSymbol(), stock.getDate(), stock.getValue());
-    return session.executeAsync(bound).thenApply(rs -> stock);
+    CompletionStage<AsyncResultSet> stage = session.executeAsync(bound);
+    return stage.thenApply(rs -> stock);
   }
 
   /**
@@ -81,7 +86,8 @@ public class AsyncStockRepository {
   @NonNull
   public CompletionStage<Void> deleteById(@NonNull String symbol, @NonNull Instant date) {
     BoundStatement bound = deleteById.bind(symbol, date);
-    return session.executeAsync(bound).thenApply(rs -> null);
+    CompletionStage<AsyncResultSet> stage = session.executeAsync(bound);
+    return stage.thenApply(rs -> null);
   }
 
   /**
@@ -94,10 +100,10 @@ public class AsyncStockRepository {
   @NonNull
   public CompletionStage<Optional<Stock>> findById(@NonNull String symbol, @NonNull Instant date) {
     BoundStatement bound = findById.bind(symbol, date);
-    return session
-        .executeAsync(bound)
+    CompletionStage<AsyncResultSet> stage = session.executeAsync(bound);
+    return stage
         .thenApply(AsyncPagingIterable::one)
-        .thenApply(row -> Optional.ofNullable(row).map(Stock::fromRow));
+        .thenApply(row -> Optional.ofNullable(row).map(rowMapper));
   }
 
   /**
@@ -121,7 +127,7 @@ public class AsyncStockRepository {
     CompletionStage<AsyncResultSet> stage = session.executeAsync(bound);
     return stage
         .thenCompose(first -> new RowCollector(first, offset, limit))
-        .thenApply(rows -> rows.stream().map(Stock::fromRow));
+        .thenApply(rows -> rows.stream().map(rowMapper));
   }
 
   private static class RowCollector extends CompletableFuture<List<Row>> {

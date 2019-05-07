@@ -15,11 +15,15 @@
  */
 package com.datastax.demo.sync.repository;
 
+import static com.datastax.demo.common.conf.StockQueriesConfiguration.DATE;
+import static com.datastax.demo.common.conf.StockQueriesConfiguration.SYMBOL;
+import static com.datastax.demo.common.conf.StockQueriesConfiguration.VALUE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import com.datastax.demo.common.model.Stock;
+import com.datastax.demo.common.repository.StockRowMapper;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
@@ -29,6 +33,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -62,12 +67,15 @@ class SyncStockRepositoryTest {
   private Stock stock1 = new Stock("ABC", i1, BigDecimal.valueOf(42.0));
   private Stock stock2 = new Stock("ABC", i2, BigDecimal.valueOf(43.0));
 
+  private Function<Row, Stock> rowMapper = new StockRowMapper();
+
   @Test
   void should_save() {
     // given
     given(insert.bind(stock1.getSymbol(), stock1.getDate(), stock1.getValue())).willReturn(bound);
     // when
-    var stockRepository = new SyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var stockRepository =
+        new SyncStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var saved = stockRepository.save(stock1);
     // then
     assertThat(saved).isNotNull().isEqualTo(stock1);
@@ -79,7 +87,8 @@ class SyncStockRepositoryTest {
     // given
     given(delete.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
     // when
-    var stockRepository = new SyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var stockRepository =
+        new SyncStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     stockRepository.deleteById(stock1.getSymbol(), stock1.getDate());
     // then
     verify(session).execute(bound);
@@ -91,11 +100,12 @@ class SyncStockRepositoryTest {
     given(findById.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
     given(session.execute(bound)).willReturn(resultSet);
     given(resultSet.one()).willReturn(row1);
-    given(row1.getString(0)).willReturn(stock1.getSymbol());
-    given(row1.getInstant(1)).willReturn(stock1.getDate());
-    given(row1.getBigDecimal(2)).willReturn(stock1.getValue());
+    given(row1.getString(SYMBOL)).willReturn(stock1.getSymbol());
+    given(row1.getInstant(DATE)).willReturn(stock1.getDate());
+    given(row1.getBigDecimal(VALUE)).willReturn(stock1.getValue());
     // when
-    var stockRepository = new SyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var stockRepository =
+        new SyncStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     Optional<Stock> result = stockRepository.findById(stock1.getSymbol(), stock1.getDate());
     // then
     assertThat(result).isNotEmpty().contains(stock1);
@@ -109,14 +119,15 @@ class SyncStockRepositoryTest {
     given(session.execute(bound)).willReturn(resultSet);
     List<Row> rows = List.of(row1, row2);
     given(resultSet.spliterator()).willReturn(rows.spliterator());
-    given(row1.getString(0)).willReturn(stock1.getSymbol());
-    given(row1.getInstant(1)).willReturn(stock1.getDate());
-    given(row1.getBigDecimal(2)).willReturn(stock1.getValue());
-    given(row2.getString(0)).willReturn(stock2.getSymbol());
-    given(row2.getInstant(1)).willReturn(stock2.getDate());
-    given(row2.getBigDecimal(2)).willReturn(stock2.getValue());
+    given(row1.getString(SYMBOL)).willReturn(stock1.getSymbol());
+    given(row1.getInstant(DATE)).willReturn(stock1.getDate());
+    given(row1.getBigDecimal(VALUE)).willReturn(stock1.getValue());
+    given(row2.getString(SYMBOL)).willReturn(stock2.getSymbol());
+    given(row2.getInstant(DATE)).willReturn(stock2.getDate());
+    given(row2.getBigDecimal(VALUE)).willReturn(stock2.getValue());
     // when
-    var stockRepository = new SyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var stockRepository =
+        new SyncStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var result = stockRepository.findAllBySymbol("ABC", i1, i2, 0, 10);
     // then
     assertThat(result).isNotEmpty().containsExactly(stock1, stock2);

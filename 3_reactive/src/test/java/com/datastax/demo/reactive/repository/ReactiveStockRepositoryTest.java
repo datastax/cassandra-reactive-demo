@@ -15,16 +15,22 @@
  */
 package com.datastax.demo.reactive.repository;
 
+import static com.datastax.demo.common.conf.StockQueriesConfiguration.DATE;
+import static com.datastax.demo.common.conf.StockQueriesConfiguration.SYMBOL;
+import static com.datastax.demo.common.conf.StockQueriesConfiguration.VALUE;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import com.datastax.demo.common.model.Stock;
+import com.datastax.demo.common.repository.StockRowMapper;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.cql.reactive.ReactiveRow;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -57,6 +63,8 @@ class ReactiveStockRepositoryTest {
   private Stock stock1 = new Stock("ABC", i1, BigDecimal.valueOf(42.0));
   private Stock stock2 = new Stock("ABC", i2, BigDecimal.valueOf(43.0));
 
+  private Function<Row, Stock> rowMapper = new StockRowMapper();
+
   @Test
   void should_save() {
     // given
@@ -64,7 +72,7 @@ class ReactiveStockRepositoryTest {
     given(session.executeReactive(bound)).willReturn(new MockReactiveResultSet());
     // when
     var stockRepository =
-        new ReactiveStockRepository(session, insert, delete, findById, findBySymbol);
+        new ReactiveStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var mono = stockRepository.save(stock1);
     // then
     StepVerifier.create(mono).expectNext(stock1).expectComplete().verify();
@@ -78,7 +86,7 @@ class ReactiveStockRepositoryTest {
     given(session.executeReactive(bound)).willReturn(new MockReactiveResultSet());
     // when
     var stockRepository =
-        new ReactiveStockRepository(session, insert, delete, findById, findBySymbol);
+        new ReactiveStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var mono = stockRepository.deleteById(stock1.getSymbol(), stock1.getDate());
     // then
     StepVerifier.create(mono).expectComplete().verify();
@@ -90,12 +98,12 @@ class ReactiveStockRepositoryTest {
     // given
     given(findById.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
     given(session.executeReactive(bound)).willReturn(new MockReactiveResultSet(row1));
-    given(row1.getString(0)).willReturn(stock1.getSymbol());
-    given(row1.getInstant(1)).willReturn(stock1.getDate());
-    given(row1.getBigDecimal(2)).willReturn(stock1.getValue());
+    given(row1.getString(SYMBOL)).willReturn(stock1.getSymbol());
+    given(row1.getInstant(DATE)).willReturn(stock1.getDate());
+    given(row1.getBigDecimal(VALUE)).willReturn(stock1.getValue());
     // when
     var stockRepository =
-        new ReactiveStockRepository(session, insert, delete, findById, findBySymbol);
+        new ReactiveStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var mono = stockRepository.findById(stock1.getSymbol(), stock1.getDate());
     // then
     StepVerifier.create(mono).expectNext(stock1).expectComplete().verify();
@@ -107,15 +115,15 @@ class ReactiveStockRepositoryTest {
     // given
     given(findBySymbol.bind("ABC", i1, i2)).willReturn(bound);
     given(session.executeReactive(bound)).willReturn(new MockReactiveResultSet(row1, row2));
-    given(row1.getString(0)).willReturn(stock1.getSymbol());
-    given(row1.getInstant(1)).willReturn(stock1.getDate());
-    given(row1.getBigDecimal(2)).willReturn(stock1.getValue());
-    given(row2.getString(0)).willReturn(stock2.getSymbol());
-    given(row2.getInstant(1)).willReturn(stock2.getDate());
-    given(row2.getBigDecimal(2)).willReturn(stock2.getValue());
+    given(row1.getString(SYMBOL)).willReturn(stock1.getSymbol());
+    given(row1.getInstant(DATE)).willReturn(stock1.getDate());
+    given(row1.getBigDecimal(VALUE)).willReturn(stock1.getValue());
+    given(row2.getString(SYMBOL)).willReturn(stock2.getSymbol());
+    given(row2.getInstant(DATE)).willReturn(stock2.getDate());
+    given(row2.getBigDecimal(VALUE)).willReturn(stock2.getValue());
     // when
     var stockRepository =
-        new ReactiveStockRepository(session, insert, delete, findById, findBySymbol);
+        new ReactiveStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var flux = stockRepository.findAllBySymbol("ABC", i1, i2, 0, 10);
     // then
     StepVerifier.create(flux).expectNext(stock1).expectNext(stock2).expectComplete().verify();

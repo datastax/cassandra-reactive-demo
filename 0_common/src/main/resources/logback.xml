@@ -19,7 +19,7 @@
 <configuration>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%highlight(%-5level) %cyan(%-45logger{45}) : %msg%n</pattern>
+      <pattern>%highlight(%-5level) %msg%n</pattern>
     </encoder>
   </appender>
   <!-- This demo application root logger -->
@@ -29,8 +29,8 @@
   <!-- DataStax DSE Java Driver root logger -->
   <logger name="com.datastax.dse" level="${debugTests:-INFO}"/>
   <!-- Spring Web root loggers (useful to debug tests) -->
-  <logger name="org.springframework.web" level="${debugTests:-WARN}"/>
-  <logger name="org.springframework.test.web" level="${debugTests:-WARN}"/>
+  <logger name="org.springframework.web" level="${debugTests:-DEBUG}"/>
+  <logger name="org.springframework.test.web" level="${debugTests:-DEBUG}"/>
   <root level="WARN">
     <appender-ref ref="STDOUT"/>
   </root>

@@ -16,9 +16,7 @@
 package com.datastax.demo.common.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
 
-import com.datastax.oss.driver.api.core.cql.Row;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -26,29 +24,10 @@ import java.time.Month;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class StockTest {
-
-  @Mock Row row;
-
-  @Test
-  void should_create_stock_from_driver_row() {
-    // given
-    var i = Instant.parse("2019-01-01T12:34:56.789Z");
-    BigDecimal value = BigDecimal.valueOf(42);
-    given(row.getString(0)).willReturn("ABC");
-    given(row.getInstant(1)).willReturn(i);
-    given(row.getBigDecimal(2)).willReturn(value);
-    // when
-    Stock result = Stock.fromRow(row);
-    // then
-    assertThat(result.getSymbol()).isEqualTo("ABC");
-    assertThat(result.getDate()).isEqualTo(i);
-    assertThat(result.getValue()).isEqualTo(value);
-  }
 
   @Test
   void should_return_true_when_two_instances_same() {

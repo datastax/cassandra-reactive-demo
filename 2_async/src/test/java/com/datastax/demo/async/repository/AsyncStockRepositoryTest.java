@@ -15,12 +15,16 @@
  */
 package com.datastax.demo.async.repository;
 
+import static com.datastax.demo.common.conf.StockQueriesConfiguration.DATE;
+import static com.datastax.demo.common.conf.StockQueriesConfiguration.SYMBOL;
+import static com.datastax.demo.common.conf.StockQueriesConfiguration.VALUE;
 import static java.util.concurrent.CompletableFuture.completedStage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import com.datastax.demo.common.model.Stock;
+import com.datastax.demo.common.repository.StockRowMapper;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -30,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -63,13 +68,16 @@ class AsyncStockRepositoryTest {
   private Stock stock1 = new Stock("ABC", i1, BigDecimal.valueOf(42.0));
   private Stock stock2 = new Stock("ABC", i2, BigDecimal.valueOf(43.0));
 
+  private Function<Row, Stock> rowMapper = new StockRowMapper();
+
   @Test
   void should_save() {
     // given
     given(insert.bind(stock1.getSymbol(), stock1.getDate(), stock1.getValue())).willReturn(bound);
     given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
     // when
-    var stockRepository = new AsyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var stockRepository =
+        new AsyncStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var future = stockRepository.save(stock1);
     // then
     assertThat(future).isNotNull().isCompletedWithValue(stock1);
@@ -82,7 +90,8 @@ class AsyncStockRepositoryTest {
     given(delete.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
     given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
     // when
-    var stockRepository = new AsyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var stockRepository =
+        new AsyncStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var future = stockRepository.deleteById(stock1.getSymbol(), stock1.getDate());
     // then
     assertThat(future).isNotNull().isCompletedWithValue(null);
@@ -95,11 +104,12 @@ class AsyncStockRepositoryTest {
     given(findById.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
     given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
     given(resultSet.one()).willReturn(row1);
-    given(row1.getString(0)).willReturn(stock1.getSymbol());
-    given(row1.getInstant(1)).willReturn(stock1.getDate());
-    given(row1.getBigDecimal(2)).willReturn(stock1.getValue());
+    given(row1.getString(SYMBOL)).willReturn(stock1.getSymbol());
+    given(row1.getInstant(DATE)).willReturn(stock1.getDate());
+    given(row1.getBigDecimal(VALUE)).willReturn(stock1.getValue());
     // when
-    var stockRepository = new AsyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var stockRepository =
+        new AsyncStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var future = stockRepository.findById(stock1.getSymbol(), stock1.getDate());
     // then
     assertThat(future).isNotNull().isCompleted();
@@ -115,14 +125,15 @@ class AsyncStockRepositoryTest {
     List<Row> rows = List.of(row1, row2);
     given(resultSet.currentPage()).willReturn(rows);
     given(resultSet.hasMorePages()).willReturn(false);
-    given(row1.getString(0)).willReturn(stock1.getSymbol());
-    given(row1.getInstant(1)).willReturn(stock1.getDate());
-    given(row1.getBigDecimal(2)).willReturn(stock1.getValue());
-    given(row2.getString(0)).willReturn(stock2.getSymbol());
-    given(row2.getInstant(1)).willReturn(stock2.getDate());
-    given(row2.getBigDecimal(2)).willReturn(stock2.getValue());
+    given(row1.getString(SYMBOL)).willReturn(stock1.getSymbol());
+    given(row1.getInstant(DATE)).willReturn(stock1.getDate());
+    given(row1.getBigDecimal(VALUE)).willReturn(stock1.getValue());
+    given(row2.getString(SYMBOL)).willReturn(stock2.getSymbol());
+    given(row2.getInstant(DATE)).willReturn(stock2.getDate());
+    given(row2.getBigDecimal(VALUE)).willReturn(stock2.getValue());
     // when
-    var stockRepository = new AsyncStockRepository(session, insert, delete, findById, findBySymbol);
+    var stockRepository =
+        new AsyncStockRepository(session, insert, delete, findById, findBySymbol, rowMapper);
     var future = stockRepository.findAllBySymbol("ABC", i1, i2, 0, 10);
     // then
     assertThat(future).isNotNull().isCompleted();

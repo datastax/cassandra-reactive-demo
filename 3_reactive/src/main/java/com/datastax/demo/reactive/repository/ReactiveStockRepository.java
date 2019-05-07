@@ -17,9 +17,13 @@ package com.datastax.demo.reactive.repository;
 
 import com.datastax.demo.common.model.Stock;
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.dse.driver.api.core.cql.reactive.ReactiveResultSet;
+import com.datastax.dse.driver.api.core.cql.reactive.ReactiveRow;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.Row;
 import java.time.Instant;
+import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.lang.NonNull;
@@ -38,18 +42,21 @@ public class ReactiveStockRepository {
   private final PreparedStatement deleteById;
   private final PreparedStatement findById;
   private final PreparedStatement findBySymbol;
+  private final Function<Row, Stock> rowMapper;
 
   public ReactiveStockRepository(
       DseSession session,
       @Qualifier("stocks.prepared.insert") PreparedStatement insert,
       @Qualifier("stocks.prepared.deleteById") PreparedStatement deleteById,
       @Qualifier("stocks.prepared.findById") PreparedStatement findById,
-      @Qualifier("stocks.prepared.findBySymbol") PreparedStatement findBySymbol) {
+      @Qualifier("stocks.prepared.findBySymbol") PreparedStatement findBySymbol,
+      Function<Row, Stock> rowMapper) {
     this.session = session;
     this.insert = insert;
     this.deleteById = deleteById;
     this.findById = findById;
     this.findBySymbol = findBySymbol;
+    this.rowMapper = rowMapper;
   }
 
   /**
@@ -61,7 +68,8 @@ public class ReactiveStockRepository {
   @NonNull
   public Mono<Stock> save(@NonNull Stock stock) {
     BoundStatement bound = insert.bind(stock.getSymbol(), stock.getDate(), stock.getValue());
-    return Mono.fromDirect(session.executeReactive(bound)).then(Mono.just(stock));
+    ReactiveResultSet rs = session.executeReactive(bound);
+    return Mono.fromDirect(rs).then(Mono.just(stock));
   }
 
   /**
@@ -74,7 +82,8 @@ public class ReactiveStockRepository {
   @NonNull
   public Mono<Void> deleteById(@NonNull String symbol, @NonNull Instant date) {
     BoundStatement bound = deleteById.bind(symbol, date);
-    return Mono.fromDirect(session.executeReactive(bound)).then();
+    ReactiveResultSet rs = session.executeReactive(bound);
+    return Mono.fromDirect(rs).then();
   }
 
   /**
@@ -87,7 +96,8 @@ public class ReactiveStockRepository {
   @NonNull
   public Mono<Stock> findById(@NonNull String symbol, @NonNull Instant date) {
     BoundStatement bound = findById.bind(symbol, date);
-    return Mono.fromDirect(session.executeReactive(bound)).map(Stock::fromRow);
+    ReactiveResultSet rs = session.executeReactive(bound);
+    return Mono.fromDirect(rs).map(rowMapper);
   }
 
   /**
@@ -108,6 +118,8 @@ public class ReactiveStockRepository {
       long offset,
       long limit) {
     BoundStatement bound = findBySymbol.bind(symbol, startInclusive, endExclusive);
-    return Flux.from(session.executeReactive(bound)).skip(offset).take(limit).map(Stock::fromRow);
+    ReactiveResultSet rs = session.executeReactive(bound);
+    Flux<ReactiveRow> flux = Flux.from(rs);
+    return flux.skip(offset).take(limit).map(rowMapper);
   }
 }

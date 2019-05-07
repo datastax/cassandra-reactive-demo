@@ -45,9 +45,9 @@ public class StockQueriesConfiguration {
 
   private static final CqlIdentifier STOCKS = CqlIdentifier.fromCql("stocks");
 
-  private static final CqlIdentifier SYMBOL = CqlIdentifier.fromCql("symbol");
-  private static final CqlIdentifier DATE = CqlIdentifier.fromCql("date");
-  private static final CqlIdentifier VALUE = CqlIdentifier.fromCql("value");
+  public static final CqlIdentifier SYMBOL = CqlIdentifier.fromCql("symbol");
+  public static final CqlIdentifier DATE = CqlIdentifier.fromCql("date");
+  public static final CqlIdentifier VALUE = CqlIdentifier.fromCql("value");
 
   private static final CqlIdentifier START = CqlIdentifier.fromCql("start");
   private static final CqlIdentifier END = CqlIdentifier.fromCql("end");

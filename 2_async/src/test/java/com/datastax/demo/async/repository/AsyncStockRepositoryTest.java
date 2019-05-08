@@ -24,7 +24,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
 import com.datastax.demo.common.model.Stock;
-import com.datastax.demo.common.repository.StockRowMapper;
+import com.datastax.demo.common.repository.RowToStockMapper;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -68,7 +68,7 @@ class AsyncStockRepositoryTest {
   private Stock stock1 = new Stock("ABC", i1, BigDecimal.valueOf(42.0));
   private Stock stock2 = new Stock("ABC", i2, BigDecimal.valueOf(43.0));
 
-  private Function<Row, Stock> rowMapper = new StockRowMapper();
+  private Function<Row, Stock> rowMapper = new RowToStockMapper();
 
   @Test
   void should_save() {

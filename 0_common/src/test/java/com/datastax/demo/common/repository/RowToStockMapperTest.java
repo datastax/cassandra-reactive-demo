@@ -19,6 +19,7 @@ import static com.datastax.demo.common.conf.StockQueriesConfiguration.DATE;
 import static com.datastax.demo.common.conf.StockQueriesConfiguration.SYMBOL;
 import static com.datastax.demo.common.conf.StockQueriesConfiguration.VALUE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.BDDMockito.given;
 
 import com.datastax.demo.common.model.Stock;
@@ -31,12 +32,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class StockRowMapperTest {
+class RowToStockMapperTest {
 
   @Mock Row row;
 
   @Test
-  void should_create_stock_from_driver_row() {
+  void should_create_stock_when_invoked_given_valid_driver_row() {
     // given
     var i = Instant.parse("2019-01-01T12:34:56.789Z");
     BigDecimal value = BigDecimal.valueOf(42);
@@ -44,11 +45,48 @@ class StockRowMapperTest {
     given(row.getInstant(DATE)).willReturn(i);
     given(row.getBigDecimal(VALUE)).willReturn(value);
     // when
-    StockRowMapper mapper = new StockRowMapper();
+    RowToStockMapper mapper = new RowToStockMapper();
     Stock result = mapper.apply(row);
     // then
     assertThat(result.getSymbol()).isEqualTo("ABC");
     assertThat(result.getDate()).isEqualTo(i);
     assertThat(result.getValue()).isEqualTo(value);
+  }
+
+  @Test
+  void should_error_out_when_invoked_given_invalid_driver_row() {
+    {
+      // given
+      given(row.getString(SYMBOL)).willReturn(null);
+      // when
+      RowToStockMapper mapper = new RowToStockMapper();
+      // then
+      assertThatNullPointerException()
+          .isThrownBy(() -> mapper.apply(row))
+          .withMessage("column symbol cannot be null");
+    }
+    {
+      // given
+      given(row.getString(SYMBOL)).willReturn("ABC");
+      given(row.getInstant(DATE)).willReturn(null);
+      // when
+      RowToStockMapper mapper = new RowToStockMapper();
+      // then
+      assertThatNullPointerException()
+          .isThrownBy(() -> mapper.apply(row))
+          .withMessage("column date cannot be null");
+    }
+    {
+      // given
+      given(row.getString(SYMBOL)).willReturn("ABC");
+      given(row.getInstant(DATE)).willReturn(Instant.parse("2019-01-01T12:34:56.789Z"));
+      given(row.getBigDecimal(VALUE)).willReturn(null);
+      // when
+      RowToStockMapper mapper = new RowToStockMapper();
+      // then
+      assertThatNullPointerException()
+          .isThrownBy(() -> mapper.apply(row))
+          .withMessage("column value cannot be null");
+    }
   }
 }

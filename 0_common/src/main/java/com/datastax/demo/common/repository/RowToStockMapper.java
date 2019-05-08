@@ -28,17 +28,18 @@ import org.springframework.stereotype.Component;
 /**
  * A row mapping function that creates a {@link Stock} instance from a database {@link Row}.
  *
- * <p>The row is expected to contain all 3 columns: symbol, date and value, as if it were obtained
- * by a CQL query such as {@code SELECT symbol, date, value FROM stocks}.
+ * <p>The row is expected to contain all 3 columns in the <code>stocks</code> table: <code>symbol
+ * </code>, <code>date</code> and <code>value</code>, as if it were obtained by a CQL query such as
+ * {@code SELECT symbol, date, value FROM stocks WHERE ...}.
  */
 @Component
-public class StockRowMapper implements Function<Row, Stock> {
+public class RowToStockMapper implements Function<Row, Stock> {
 
   @Override
   public Stock apply(Row row) {
-    var symbol = Objects.requireNonNull(row.getString(SYMBOL));
-    var date = Objects.requireNonNull(row.getInstant(DATE));
-    var value = Objects.requireNonNull(row.getBigDecimal(VALUE));
-    return new com.datastax.demo.common.model.Stock(symbol, date, value);
+    var symbol = Objects.requireNonNull(row.getString(SYMBOL), "column symbol cannot be null");
+    var date = Objects.requireNonNull(row.getInstant(DATE), "column date cannot be null");
+    var value = Objects.requireNonNull(row.getBigDecimal(VALUE), "column value cannot be null");
+    return new Stock(symbol, date, value);
   }
 }

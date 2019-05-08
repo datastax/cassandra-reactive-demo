@@ -22,7 +22,11 @@ import java.time.Instant;
 import java.util.Objects;
 import org.springframework.lang.NonNull;
 
-/** The value of a stock symbol at a point in time. */
+/**
+ * The value of a stock described by its symbol, at a given point in time.
+ *
+ * <p>This POJO models the database table <code>stocks</code>.
+ */
 public class Stock {
 
   private final String symbol;
@@ -41,19 +45,32 @@ public class Stock {
     this.value = value;
   }
 
-  /** @return The stock symbol. */
+  /**
+   * Returns the stock symbol. The stock symbol is the table's the partition key.
+   *
+   * @return The stock symbol.
+   */
   @NonNull
   public String getSymbol() {
     return symbol;
   }
 
-  /** @return The date when the stock value was recorded. */
+  /**
+   * Returns the instant when the stock value was recorded. This value is the table's clustering
+   * column.
+   *
+   * @return The instant when the stock value was recorded.
+   */
   @NonNull
   public Instant getDate() {
     return date;
   }
 
-  /** @return The stock value. */
+  /**
+   * Returns the stock value. This is a regular column in the table.
+   *
+   * @return The stock value.
+   */
   @NonNull
   public BigDecimal getValue() {
     return value;

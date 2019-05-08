@@ -19,4 +19,3 @@ driver:
   username:
   password:
   keyspace: demo
-  consistency: LOCAL_QUORUM

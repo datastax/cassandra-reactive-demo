@@ -23,15 +23,16 @@
     </encoder>
   </appender>
   <!-- This demo application root logger -->
-  <logger name="com.datastax.demo" level="${debugTests:-INFO}"/>
+  <logger name="com.datastax.demo" level="${appLogLevel:-INFO}"/>
   <!-- DataStax OSS Java Driver root logger -->
-  <logger name="com.datastax.oss" level="${debugTests:-INFO}"/>
+  <logger name="com.datastax.oss" level="${driverLogLevel:-INFO}"/>
   <!-- DataStax DSE Java Driver root logger -->
-  <logger name="com.datastax.dse" level="${debugTests:-INFO}"/>
-  <!-- Spring Web root loggers (useful to debug tests) -->
-  <logger name="org.springframework.web" level="${debugTests:-DEBUG}"/>
-  <logger name="org.springframework.test.web" level="${debugTests:-DEBUG}"/>
-  <root level="WARN">
+  <logger name="com.datastax.dse" level="${driverLogLevel:-INFO}"/>
+  <!-- Some Spring loggers -->
+  <logger name="org.springframework" level="${springLogLevel:-WARN}"/>
+  <logger name="org.springframework.web" level="${springWebLogLevel:-DEBUG}"/>
+  <logger name="org.springframework.test.web" level="${springWebLogLevel:-DEBUG}"/>
+  <root level="${rootLogLevel:-WARN}">
     <appender-ref ref="STDOUT"/>
   </root>
 </configuration>

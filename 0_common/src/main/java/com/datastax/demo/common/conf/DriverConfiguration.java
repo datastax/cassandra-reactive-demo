@@ -55,9 +55,6 @@ import org.springframework.util.StringUtils;
  *   <li><code>driver.keyspace</code>: this property will override the driver's {@code
  *       datastax-java-driver.basic.session-keyspace} option; it has no default value and must be
  *       specified;
- *   <li><code>driver.consistency</code>: this property will override the driver's {@code
- *       datastax-java-driver.basic.request.consistency}; it will default to <code>LOCAL_QUORUM
- *       </code> if unspecified;
  *   <li><code>driver.pageSize</code>: this property will override the driver's {@code
  *       datastax-java-driver.basic.request.page-size}; it will default to <code>10</code> if
  *       unspecified;
@@ -87,9 +84,6 @@ public class DriverConfiguration {
   @Value("${driver.keyspace}")
   protected String keyspaceName;
 
-  @Value("${driver.consistency:LOCAL_QUORUM}")
-  protected String consistency;
-
   @Value("${driver.username}")
   protected String dseUsername;
 
@@ -115,8 +109,7 @@ public class DriverConfiguration {
   @Bean
   public ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder() {
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
-        DseDriverConfigLoader.programmaticBuilder()
-            .withString(DefaultDriverOption.REQUEST_CONSISTENCY, consistency);
+        DseDriverConfigLoader.programmaticBuilder();
     if (!StringUtils.isEmpty(dseUsername) && !StringUtils.isEmpty(dsePassword)) {
       configLoaderBuilder =
           configLoaderBuilder
@@ -129,15 +122,19 @@ public class DriverConfiguration {
   }
 
   /**
-   * Returns a {@link DseSessionBuilder} that will configure sessions using contact points and other
-   * configuration properties found in application.yml, merged with other options found in
+   * Returns a {@link DseSessionBuilder} that will configure sessions using the provided {@link
+   * ProgrammaticDriverConfigLoaderBuilder config loader builder}, as well as the contact points and
+   * local datacenter name found in application.yml, merged with other options found in
    * application.conf.
    *
+   * @param driverConfigLoaderBuilder The {@link ProgrammaticDriverConfigLoaderBuilder} bean to use.
    * @return The {@link DseSessionBuilder} bean.
    */
   @Bean
-  public DseSessionBuilder sessionBuilder() {
-    DseSessionBuilder sessionBuilder = new DseSessionBuilder();
+  public DseSessionBuilder sessionBuilder(
+      @NonNull ProgrammaticDriverConfigLoaderBuilder driverConfigLoaderBuilder) {
+    DseSessionBuilder sessionBuilder =
+        new DseSessionBuilder().withConfigLoader(driverConfigLoaderBuilder.build());
     for (String contactPoint : contactPoints) {
       InetSocketAddress address = InetSocketAddress.createUnresolved(contactPoint, port);
       sessionBuilder = sessionBuilder.addContactPoint(address);
@@ -147,22 +144,16 @@ public class DriverConfiguration {
 
   /**
    * Returns the {@link DseSession} to use, configured with the provided {@link DseSessionBuilder
-   * session builder} and {@link ProgrammaticDriverConfigLoaderBuilder config loader builder}. The
-   * returned session will be automatically connected to the given keyspace.
+   * session builder}. The returned session will be automatically connected to the given keyspace.
    *
    * @param sessionBuilder The {@link DseSessionBuilder} bean to use.
-   * @param driverConfigLoaderBuilder The {@link ProgrammaticDriverConfigLoaderBuilder} bean to use.
    * @param keyspace The {@linkplain CqlIdentifier keyspace} bean to use.
    * @return The {@link DseSession} bean.
    */
   @Bean
   public DseSession session(
       @NonNull DseSessionBuilder sessionBuilder,
-      @NonNull ProgrammaticDriverConfigLoaderBuilder driverConfigLoaderBuilder,
       @Qualifier("keyspace") @NonNull CqlIdentifier keyspace) {
-    return sessionBuilder
-        .withConfigLoader(driverConfigLoaderBuilder.build())
-        .withKeyspace(keyspace)
-        .build();
+    return sessionBuilder.withKeyspace(keyspace).build();
   }
 }

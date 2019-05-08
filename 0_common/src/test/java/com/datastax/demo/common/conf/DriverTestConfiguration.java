@@ -17,7 +17,6 @@ package com.datastax.demo.common.conf;
 
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.DseSessionBuilder;
-import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
@@ -27,8 +26,6 @@ import com.datastax.oss.driver.api.querybuilder.SchemaBuilder;
 import com.datastax.oss.driver.api.testinfra.session.SessionUtils;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -46,8 +43,6 @@ import org.springframework.lang.NonNull;
 @Profile("integration-test")
 @Configuration
 public class DriverTestConfiguration extends DriverConfiguration {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(DriverTestConfiguration.class);
 
   @Autowired
   @Qualifier("stocks.simple.create")
@@ -91,7 +86,6 @@ public class DriverTestConfiguration extends DriverConfiguration {
    * production.
    *
    * @param sessionBuilder The {@link DseSessionBuilder} bean to use.
-   * @param driverConfigLoaderBuilder The {@link ProgrammaticDriverConfigLoaderBuilder} bean to use.
    * @param keyspace The {@linkplain CqlIdentifier keyspace} bean to use.
    * @return The {@link DseSession} bean.
    */
@@ -99,18 +93,9 @@ public class DriverTestConfiguration extends DriverConfiguration {
   @Override
   public DseSession session(
       @NonNull DseSessionBuilder sessionBuilder,
-      @NonNull ProgrammaticDriverConfigLoaderBuilder driverConfigLoaderBuilder,
       @Qualifier("keyspace") @NonNull CqlIdentifier keyspace) {
-    try {
-      return sessionBuilder.withConfigLoader(driverConfigLoaderBuilder.build()).build();
-    } catch (AllNodesFailedException e) {
-      LOGGER.error(
-          String.format(
-              "Could not reach any contact point, "
-                  + "make sure you've provided valid addresses (%s) and port (%d).",
-              contactPoints, port));
-      throw e;
-    }
+    // do not set the keyspace now since it needs to be created first, see createTestFixtures.
+    return sessionBuilder.build();
   }
 
   /**
@@ -132,7 +117,7 @@ public class DriverTestConfiguration extends DriverConfiguration {
   @PostConstruct
   public void createTestFixtures() {
     CqlIdentifier keyspace = keyspace();
-    DseSession session = session(sessionBuilder(), configLoaderBuilder(), keyspace);
+    DseSession session = session(sessionBuilder(configLoaderBuilder()), keyspace);
     DriverExecutionProfile slowProfile = slowProfile(session);
     var createKeyspace =
         SchemaBuilder.createKeyspace(keyspace)
@@ -149,7 +134,7 @@ public class DriverTestConfiguration extends DriverConfiguration {
   @PreDestroy
   public void destroyTestFixtures() {
     CqlIdentifier keyspace = keyspace();
-    DseSession session = session(sessionBuilder(), configLoaderBuilder(), keyspace);
+    DseSession session = session(sessionBuilder(configLoaderBuilder()), keyspace);
     DriverExecutionProfile slowProfile = slowProfile(session);
     var dropKeyspace = SchemaBuilder.dropKeyspace(keyspace).ifExists().build();
     session.execute(dropKeyspace.setExecutionProfile(slowProfile));

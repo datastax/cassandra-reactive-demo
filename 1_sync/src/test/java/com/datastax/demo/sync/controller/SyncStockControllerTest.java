@@ -99,9 +99,118 @@ class SyncStockControllerTest {
     Mockito.reset(repository);
   }
 
+  /** Tests that a stock value can be created via a POST request to the appropriate URI. */
+  @Test
+  void should_return_created_stock_when_create_stock_given_valid_request() throws Exception {
+    // given
+    given(repository.save(stock1)).willReturn(stock1);
+    // when
+    mvc.perform(post(base).contentType(APPLICATION_JSON).content(stock1Json))
+        // then
+        .andExpect(status().isCreated())
+        .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+        .andExpect(header().string("Location", endsWith(base + "/ABC/20190101000000000")))
+        .andExpect(content().json(stock1Json));
+    verify(repository).save(stock1);
+  }
+
+  /** Tests that an error while creating a stock value will result in an HTTP error status. */
+  @Test
+  void should_return_internal_error_when_create_stock_given_database_failure() throws Exception {
+    // given
+    var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
+    given(repository.save(stock1)).willThrow(error);
+    // when
+    mvc.perform(post(base).contentType(APPLICATION_JSON).content(stock1Json))
+        // then
+        .andExpect(status().is5xxServerError());
+  }
+
+  /** Tests that an existing stock value can be updated via a PUT request to its specific URI. */
+  @Test
+  void should_return_updated_stock_when_update_stock_given_valid_request() throws Exception {
+    // given
+    given(repository.findById("ABC", i1)).willReturn(Optional.of(stock1));
+    given(repository.save(stock1b)).willReturn(stock1b);
+    // when
+    mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
+        // then
+        .andExpect(status().isOk())
+        .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
+        .andExpect(content().json(stock1bJson));
+    verify(repository).save(stock1b);
+  }
+
+  /**
+   * Tests that a non-existing stock value cannot be updated via PUT request to its specific URI and
+   * results in an HTTP NotFound status.
+   */
+  @Test
+  void should_return_not_found_when_update_stock_given_invalid_request() throws Exception {
+    // given
+    given(repository.findById("ABC", i1)).willReturn(Optional.empty());
+    // when
+    mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
+        // then
+        .andExpect(status().isNotFound());
+    verify(repository, never()).save(any());
+  }
+
+  /** Tests that an error updating a stock value will result in an HTTP error status. */
+  @Test
+  void should_return_internal_error_when_update_stock_given_database_failure_while_finding_stock()
+      throws Exception {
+    // given
+    var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
+    given(repository.findById("ABC", i1)).willThrow(error);
+    // when
+    mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
+        // then
+        .andExpect(status().is5xxServerError());
+  }
+
+  /** Tests that an error updating a stock value will result in an HTTP error status. */
+  @Test
+  void should_return_internal_error_when_update_stock_given_database_failure_while_saving_stock()
+      throws Exception {
+    // given
+    var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
+    given(repository.findById("ABC", i1)).willReturn(Optional.of(stock1));
+    given(repository.save(stock1b)).willThrow(error);
+    // when
+    mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
+        // then
+        .andExpect(status().is5xxServerError());
+  }
+
+  /**
+   * Tests that an existing stock value can be deleted via a DELETE request to its specific URI and
+   * results in an HTTP OK status.
+   */
+  @Test
+  void should_return_OK_when_delete_stock_given_valid_request() throws Exception {
+    // when
+    mvc.perform(delete(base + "/ABC/20190101"))
+        // then
+        .andExpect(status().isOk());
+    verify(repository).deleteById("ABC", i1);
+  }
+
+  /** Tests that an error deleting a stock value will result in an HTTP error status. */
+  @Test
+  void should_return_internal_error_when_delete_stock_given_database_failure() throws Exception {
+    // given
+    var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
+    willThrow(error).given(repository).deleteById("ABC", i1);
+    // when
+    mvc.perform(delete(base + "/ABC/20190101"))
+        // then
+        .andExpect(status().is5xxServerError());
+  }
+
   /** Tests that an existing stock value can be retrieved with a GET request to its specific URI. */
   @Test
-  void should_find_stock_by_id() throws Exception {
+  void should_return_found_stock_when_find_stock_by_id_given_valid_request() throws Exception {
     // given
     given(repository.findById("ABC", i1)).willReturn(Optional.of(stock1));
     // when
@@ -114,10 +223,10 @@ class SyncStockControllerTest {
 
   /**
    * Tests that a non-existing stock value cannot be retrieved with a GET request to its specific
-   * URI.
+   * URI and results in an HTTP NotFound status.
    */
   @Test
-  void should_not_find_stock_by_id() throws Exception {
+  void should_return_not_found_when_find_stock_by_id_given_invalid_request() throws Exception {
     // given
     given(repository.findById("ABC", i1)).willReturn(Optional.empty());
     // when
@@ -131,7 +240,7 @@ class SyncStockControllerTest {
    * result in an HTTP error status.
    */
   @Test
-  void should_error_out_when_find_stock_by_id_failed() throws Exception {
+  void should_return_internal_error_when_find_by_id_given_database_failure() throws Exception {
     // given
     var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
     given(repository.findById("ABC", i1)).willThrow(error);
@@ -146,7 +255,8 @@ class SyncStockControllerTest {
    * retrieved with a GET request to the appropriate URI.
    */
   @Test
-  void should_find_stocks_by_symbol() throws Exception {
+  void should_return_found_stocks_when_find_stocks_by_symbol_given_valid_request()
+      throws Exception {
     // given
     given(repository.findAllBySymbol("ABC", i1, i2, 0, 10)).willReturn(Stream.of(stock1, stock2));
     // when
@@ -162,115 +272,13 @@ class SyncStockControllerTest {
    * HTTP error status.
    */
   @Test
-  void should_error_out_when_find_stocks_by_symbol_failed() throws Exception {
+  void should_return_internal_error_when_find_stocks_by_symbol_given_database_failure()
+      throws Exception {
     // given
     var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
     given(repository.findAllBySymbol("ABC", i1, i2, 0, 10)).willThrow(error);
     // when
     mvc.perform(get(base + "/ABC?start=2019&end=2020&offset=0&limit=10"))
-        // then
-        .andExpect(status().is5xxServerError());
-  }
-
-  /** Tests that a stock value can be created via a POST request to the appropriate URI. */
-  @Test
-  void should_create_stock() throws Exception {
-    // given
-    given(repository.save(stock1)).willReturn(stock1);
-    // when
-    mvc.perform(post(base).contentType(APPLICATION_JSON).content(stock1Json))
-        // then
-        .andExpect(status().isCreated())
-        .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-        .andExpect(header().string("Location", endsWith(base + "/ABC/20190101000000000")))
-        .andExpect(content().json(stock1Json));
-    verify(repository).save(stock1);
-  }
-
-  /** Tests that an error while creating a stock value will result in an HTTP error status. */
-  @Test
-  void should_error_out_when_create_stock_failed() throws Exception {
-    // given
-    var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
-    given(repository.save(stock1)).willThrow(error);
-    // when
-    mvc.perform(post(base).contentType(APPLICATION_JSON).content(stock1Json))
-        // then
-        .andExpect(status().is5xxServerError());
-  }
-
-  /** Tests that an existing stock value can be updated via a PUT request to its specific URI. */
-  @Test
-  void should_update_stock() throws Exception {
-    // given
-    given(repository.findById("ABC", i1)).willReturn(Optional.of(stock1));
-    given(repository.save(stock1b)).willReturn(stock1b);
-    // when
-    mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
-        // then
-        .andExpect(status().isOk())
-        .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-        .andExpect(content().json(stock1bJson));
-    verify(repository).save(stock1b);
-  }
-
-  /**
-   * Tests that a non-existing stock value cannot be updated via a PUT request to its specific URI.
-   */
-  @Test
-  void should_not_update_stock() throws Exception {
-    // given
-    given(repository.findById("ABC", i1)).willReturn(Optional.empty());
-    // when
-    mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
-        // then
-        .andExpect(status().isNotFound());
-    verify(repository, never()).save(any());
-  }
-
-  /** Tests that an error updating a stock value will result in an HTTP error status. */
-  @Test
-  void should_error_out_when_update_stock_failed_while_finding_by_id() throws Exception {
-    // given
-    var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
-    given(repository.findById("ABC", i1)).willThrow(error);
-    // when
-    mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
-        // then
-        .andExpect(status().is5xxServerError());
-  }
-
-  /** Tests that an error updating a stock value will result in an HTTP error status. */
-  @Test
-  void should_error_out_when_update_stock_failed_while_saving() throws Exception {
-    // given
-    var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
-    given(repository.findById("ABC", i1)).willReturn(Optional.of(stock1));
-    given(repository.save(stock1b)).willThrow(error);
-    // when
-    mvc.perform(put(base + "/ABC/20190101").contentType(APPLICATION_JSON).content(stock1bJson))
-        // then
-        .andExpect(status().is5xxServerError());
-  }
-
-  /** Tests that an existing stock value can be deleted via a DELETE request to its specific URI. */
-  @Test
-  void should_delete_stock() throws Exception {
-    // when
-    mvc.perform(delete(base + "/ABC/20190101"))
-        // then
-        .andExpect(status().isOk());
-    verify(repository).deleteById("ABC", i1);
-  }
-
-  /** Tests that an error deleting a stock value will result in an HTTP error status. */
-  @Test
-  void should_error_out_when_delete_stock_failed() throws Exception {
-    // given
-    var error = new UnavailableException(mock(Node.class), LOCAL_QUORUM, 2, 1);
-    willThrow(error).given(repository).deleteById("ABC", i1);
-    // when
-    mvc.perform(delete(base + "/ABC/20190101"))
         // then
         .andExpect(status().is5xxServerError());
   }

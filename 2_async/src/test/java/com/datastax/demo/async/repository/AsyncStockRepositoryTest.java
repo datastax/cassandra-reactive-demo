@@ -71,7 +71,7 @@ class AsyncStockRepositoryTest {
   private Function<Row, Stock> rowMapper = new RowToStockMapper();
 
   @Test
-  void should_save() {
+  void should_save_stock_when_save_given_valid_input() {
     // given
     given(insert.bind(stock1.getSymbol(), stock1.getDate(), stock1.getValue())).willReturn(bound);
     given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
@@ -85,7 +85,7 @@ class AsyncStockRepositoryTest {
   }
 
   @Test
-  void should_delete_by_id() {
+  void should_delete_stock_when_delete_by_id_given_valid_input() {
     // given
     given(delete.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
     given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
@@ -99,7 +99,8 @@ class AsyncStockRepositoryTest {
   }
 
   @Test
-  void should_find_by_id() throws ExecutionException, InterruptedException {
+  void should_find_stock_when_find_by_id_given_valid_input()
+      throws ExecutionException, InterruptedException {
     // given
     given(findById.bind(stock1.getSymbol(), stock1.getDate())).willReturn(bound);
     given(session.executeAsync(bound)).willReturn(completedStage(resultSet));
@@ -118,7 +119,8 @@ class AsyncStockRepositoryTest {
   }
 
   @Test
-  void should_find_all_by_symbol() throws ExecutionException, InterruptedException {
+  void should_find_stocks_when_find_all_by_symbol_given_valid_input()
+      throws ExecutionException, InterruptedException {
     // given
     given(findBySymbol.bind("ABC", i1, i2)).willReturn(bound);
     given(session.executeAsync(bound)).willReturn(completedStage(resultSet));

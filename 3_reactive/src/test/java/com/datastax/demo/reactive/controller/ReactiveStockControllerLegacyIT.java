@@ -34,16 +34,22 @@ import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.http.MediaType;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
- * An integration test for the {@link ReactiveStockController}, using the modern {@link
- * WebTestClient} API.
+ * An integration test for the {@link ReactiveStockController}, using the legacy {@link
+ * TestRestTemplate} API.
+ *
+ * <p>A more modern approach to testing reactive controllers is used in {@link
+ * ReactiveStockControllerIT}, which you should prefer to this one.
  *
  * <p>This test assumes that a DataStax Enterprise (DSE) or Apache Cassandra cluster is running and
  * accepting client connections.
@@ -54,11 +60,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 @TestInstance(Lifecycle.PER_CLASS)
 @ActiveProfiles("integration-test")
 @ComponentScan("com.datastax.demo")
-class ReactiveStockControllerIT {
+class ReactiveStockControllerLegacyIT {
+
+  private static final ParameterizedTypeReference<List<Stock>> LIST_OF_STOCKS =
+      new ParameterizedTypeReference<>() {};
 
   @LocalServerPort private int port;
 
-  @Autowired private WebTestClient webTestClient;
+  @Autowired private TestRestTemplate template;
 
   @Autowired private DseSession session;
 
@@ -116,22 +125,12 @@ class ReactiveStockControllerIT {
 
   /** Tests that a stock value can be created via a POST request to the appropriate URI. */
   @Test
-  void should_create_stock_given_valid_request() {
+  void should_return_created_stock_when_POST_method_given_valid_request() {
     // when
-    webTestClient
-        .post()
-        .uri(baseUri)
-        .syncBody(stock1)
-        .exchange()
-        // then
-        .expectStatus()
-        .isCreated()
-        .expectHeader()
-        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
-        .expectHeader()
-        .valueEquals("location", stock1Uri.toString())
-        .expectBody(Stock.class)
-        .isEqualTo(stock1);
+    ResponseEntity<Stock> response = template.postForEntity(baseUri, stock1, Stock.class);
+    // then
+    assertThat(response.getHeaders().getFirst("Location")).isEqualTo(stock1Uri.toString());
+    assertThat(response.getBody()).isEqualTo(stock1);
     assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
         .hasOnlyOneElementSatisfying(
             row -> {
@@ -142,24 +141,16 @@ class ReactiveStockControllerIT {
 
   /** Tests that an existing stock value can be updated via a PUT request to its specific URI. */
   @Test
-  void should_update_stock_given_valid_request() {
+  void should_return_updated_stock_when_PUT_method_given_valid_request() {
     // given
     insertStocks(stock1);
-    BigDecimal newValue = BigDecimal.valueOf(42.42);
-    Stock updated = new Stock(stock1.getSymbol(), stock1.getDate(), newValue);
+    BigDecimal updatedValue = BigDecimal.valueOf(42.42);
+    Stock updated = new Stock(stock1.getSymbol(), stock1.getDate(), updatedValue);
     // when
-    webTestClient
-        .put()
-        .uri(stock1Uri)
-        .syncBody(updated)
-        .exchange()
-        // then
-        .expectStatus()
-        .isOk()
-        .expectHeader()
-        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
-        .expectBody(Stock.class)
-        .isEqualTo(updated);
+    RequestEntity<Stock> request = RequestEntity.put(stock1Uri).body(updated);
+    ResponseEntity<Stock> response = template.exchange(request, Stock.class);
+    // then
+    assertThat(response.getBody()).isEqualTo(updated);
     assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
         .hasOnlyOneElementSatisfying(
             row -> {
@@ -169,83 +160,63 @@ class ReactiveStockControllerIT {
   }
 
   /**
-   * Tests that a non-existing stock value cannot be updated via a PUT request to the appropriate
-   * URI.
+   * Tests that a non-existing stock value cannot be updated via PUT request to its specific URI and
+   * results in an HTTP NotFound status.
    */
   @Test
-  void should_not_update_stock() {
+  void should_return_not_found_when_PUT_method_given_invalid_request() {
     // given
     BigDecimal newValue = BigDecimal.valueOf(42.42);
     Stock updated = new Stock(stock1.getSymbol(), stock1.getDate(), newValue);
     // when
-    webTestClient
-        .put()
-        .uri(stock1Uri)
-        .syncBody(updated)
-        .exchange()
-        // then
-        .expectStatus()
-        .isNotFound()
-        .expectBody()
-        .isEmpty();
+    RequestEntity<Stock> request = RequestEntity.put(stock1Uri).body(updated);
+    ResponseEntity<Stock> response = template.exchange(request, Stock.class);
+    // then
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(response.hasBody()).isFalse();
     assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
         .isEmpty();
   }
 
-  /** Tests that an existing stock value can be deleted via a DELETE request to its specific URI. */
+  /**
+   * Tests that an existing stock value can be deleted via a DELETE request to its specific URI and
+   * results in an HTTP OK status.
+   */
   @Test
-  void should_delete_stock_given_valid_request() {
+  void should_return_OK_when_DELETE_method_given_valid_request() {
     // given
     insertStocks(stock1);
     // when
-    webTestClient
-        .delete()
-        .uri(stock1Uri)
-        .exchange()
-        // then
-        .expectStatus()
-        .isOk()
-        .expectBody()
-        .isEmpty();
+    RequestEntity<Void> request = RequestEntity.delete(stock1Uri).build();
+    ResponseEntity<Void> response = template.exchange(request, Void.class);
+    // then
+    assertThat(response.getBody()).isNull();
     assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
         .isEmpty();
   }
 
   /** Tests that an existing stock value can be retrieved with a GET request to its specific URI. */
   @Test
-  void should_find_stock_by_id() {
+  void should_return_found_stock_when_GET_method_given_valid_request() {
     // given
     insertStocks(stock1);
     // when
-    webTestClient
-        .get()
-        .uri(stock1Uri)
-        .exchange()
-        // then
-        .expectStatus()
-        .isOk()
-        .expectHeader()
-        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
-        .expectBody(Stock.class)
-        .isEqualTo(stock1);
+    Stock actual = template.getForObject(stock1Uri, Stock.class);
+    // then
+    assertThat(actual).isEqualTo(stock1);
   }
 
   /**
-   * Tests that a non-existing stock value cannot be retrieved with a GET request to its specific
-   * URI.
+   * Tests that a non-existing stock value cannot be retrieved with a GET request to its specific *
+   * URI and results in an HTTP NotFound status.
    */
   @Test
-  void should_not_find_stock_by_id() {
+  void should_return_not_found_when_GET_method_given_invalid_request() {
     // when
-    webTestClient
-        .get()
-        .uri(stock1Uri)
-        .exchange()
-        // then
-        .expectStatus()
-        .isNotFound()
-        .expectBody()
-        .isEmpty();
+    ResponseEntity<Stock> actual = template.getForEntity(stock1Uri, Stock.class);
+    // then
+    assertThat(actual.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(actual.hasBody()).isFalse();
   }
 
   /**
@@ -253,21 +224,14 @@ class ReactiveStockControllerIT {
    * retrieved with a GET request to the appropriate URI.
    */
   @Test
-  void should_find_stocks_by_symbol() {
+  void should_return_found_stocks_when_GET_method_given_valid_request() {
     // given
     insertStocks(stock1, stock2, stock3, stock4, stock5);
     // when
-    webTestClient
-        .get()
-        .uri(findStocksUri)
-        .exchange()
-        // then
-        .expectStatus()
-        .isOk()
-        .expectHeader()
-        .contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
-        .expectBodyList(Stock.class)
-        .isEqualTo(List.of(stock4, stock3));
+    RequestEntity<Void> request1 = RequestEntity.get(findStocksUri).build();
+    ResponseEntity<List<Stock>> response1 = template.exchange(request1, LIST_OF_STOCKS);
+    // then
+    assertThat(response1.getBody()).isEqualTo(List.of(stock4, stock3));
   }
 
   private void insertStocks(Stock... stocks) {

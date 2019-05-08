@@ -67,65 +67,6 @@ public class AsyncStockController {
   }
 
   /**
-   * Lists the available stocks for the given symbol and date range (GET method).
-   *
-   * @param symbol The symbol to list stocks for.
-   * @param startInclusive The start of the date range (inclusive).
-   * @param endExclusive The end of the date range (exclusive).
-   * @param offset The zero-based index of the first result to return.
-   * @param limit The maximum number of results to return.
-   * @param request The current HTTP request.
-   * @return The available stocks for the given symbol and date range.
-   */
-  @GetMapping("/{symbol}")
-  public DeferredResult<ResponseEntity<Stream<Stock>>> listStocks(
-      @PathVariable(name = "symbol") @NonNull String symbol,
-      @RequestParam(name = "start") @NonNull Instant startInclusive,
-      @RequestParam(name = "end") @NonNull Instant endExclusive,
-      @RequestParam(name = "offset") int offset,
-      @RequestParam(name = "limit") int limit,
-      @NonNull HttpServletRequest request) {
-    var deferred = new DeferredResult<ResponseEntity<Stream<Stock>>>();
-    stockRepository
-        .findAllBySymbol(symbol, startInclusive, endExclusive, offset, limit)
-        .whenComplete(
-            (results, error) -> {
-              if (error == null) {
-                deferred.setResult(ResponseEntity.ok(results));
-              } else {
-                deferred.setErrorResult(error);
-              }
-            });
-    return deferred;
-  }
-
-  /**
-   * Retrieves the stock value for the given symbol and date (GET method).
-   *
-   * @param symbol The stock symbol to find.
-   * @param date The stock date to find.
-   * @return The found stock value, or empty if no stock value was found.
-   */
-  @GetMapping("/{symbol}/{date}")
-  public DeferredResult<ResponseEntity<Stock>> findStock(
-      @PathVariable("symbol") String symbol, @PathVariable("date") Instant date) {
-    var deferred = new DeferredResult<ResponseEntity<Stock>>();
-    stockRepository
-        .findById(symbol, date)
-        .whenComplete(
-            (stock, error) -> {
-              if (error == null) {
-                var response =
-                    stock.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
-                deferred.setResult(response);
-              } else {
-                deferred.setErrorResult(error);
-              }
-            });
-    return deferred;
-  }
-
-  /**
    * Creates a new stock value (POST method).
    *
    * @param stock The stock value to create.
@@ -208,6 +149,65 @@ public class AsyncStockController {
             (res, error) -> {
               if (error == null) {
                 deferred.setResult(ResponseEntity.ok().build());
+              } else {
+                deferred.setErrorResult(error);
+              }
+            });
+    return deferred;
+  }
+
+  /**
+   * Retrieves the stock value for the given symbol and date (GET method).
+   *
+   * @param symbol The stock symbol to find.
+   * @param date The stock date to find.
+   * @return The found stock value, or empty if no stock value was found.
+   */
+  @GetMapping("/{symbol}/{date}")
+  public DeferredResult<ResponseEntity<Stock>> findStock(
+      @PathVariable("symbol") String symbol, @PathVariable("date") Instant date) {
+    var deferred = new DeferredResult<ResponseEntity<Stock>>();
+    stockRepository
+        .findById(symbol, date)
+        .whenComplete(
+            (stock, error) -> {
+              if (error == null) {
+                var response =
+                    stock.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+                deferred.setResult(response);
+              } else {
+                deferred.setErrorResult(error);
+              }
+            });
+    return deferred;
+  }
+
+  /**
+   * Lists the available stocks for the given symbol and date range (GET method).
+   *
+   * @param symbol The symbol to list stocks for.
+   * @param startInclusive The start of the date range (inclusive).
+   * @param endExclusive The end of the date range (exclusive).
+   * @param offset The zero-based index of the first result to return.
+   * @param limit The maximum number of results to return.
+   * @param request The current HTTP request.
+   * @return The available stocks for the given symbol and date range.
+   */
+  @GetMapping("/{symbol}")
+  public DeferredResult<ResponseEntity<Stream<Stock>>> listStocks(
+      @PathVariable(name = "symbol") @NonNull String symbol,
+      @RequestParam(name = "start") @NonNull Instant startInclusive,
+      @RequestParam(name = "end") @NonNull Instant endExclusive,
+      @RequestParam(name = "offset") int offset,
+      @RequestParam(name = "limit") int limit,
+      @NonNull HttpServletRequest request) {
+    var deferred = new DeferredResult<ResponseEntity<Stream<Stock>>>();
+    stockRepository
+        .findAllBySymbol(symbol, startInclusive, endExclusive, offset, limit)
+        .whenComplete(
+            (results, error) -> {
+              if (error == null) {
+                deferred.setResult(ResponseEntity.ok(results));
               } else {
                 deferred.setErrorResult(error);
               }

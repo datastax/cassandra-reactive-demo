@@ -119,48 +119,9 @@ class AsyncStockControllerIT {
     session.execute(stockTruncate);
   }
 
-  /** Tests that an existing stock value can be retrieved with a GET request to its specific URI. */
-  @Test
-  void should_find_stock_by_id() {
-    // given
-    insertStocks(stock1);
-    // when
-    Stock actual = template.getForObject(stock1Uri, Stock.class);
-    // then
-    assertThat(actual).isEqualTo(stock1);
-  }
-
-  /**
-   * Tests that a non-existing stock value cannot be retrieved with a GET request to its specific
-   * URI.
-   */
-  @Test
-  void should_not_find_stock_by_id() {
-    // when
-    ResponseEntity<Stock> actual = template.getForEntity(stock1Uri, Stock.class);
-    // then
-    assertThat(actual.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-    assertThat(actual.hasBody()).isFalse();
-  }
-
-  /**
-   * Tests that existing stock values for a given symbol and within a given date range can be
-   * retrieved with a GET request to the appropriate URI.
-   */
-  @Test
-  void should_find_stocks_by_symbol() {
-    // given
-    insertStocks(stock1, stock2, stock3, stock4, stock5);
-    // when
-    RequestEntity<Void> request1 = RequestEntity.get(findStocksUri).build();
-    ResponseEntity<List<Stock>> response1 = template.exchange(request1, LIST_OF_STOCKS);
-    // then
-    assertThat(response1.getBody()).isEqualTo(List.of(stock4, stock3));
-  }
-
   /** Tests that a stock value can be created via a POST request to the appropriate URI. */
   @Test
-  void should_create_stock() {
+  void should_return_created_stock_when_POST_method_given_valid_request() {
     // when
     ResponseEntity<Stock> response = template.postForEntity(baseUri, stock1, Stock.class);
     // then
@@ -176,11 +137,11 @@ class AsyncStockControllerIT {
 
   /** Tests that an existing stock value can be updated via a PUT request to its specific URI. */
   @Test
-  void should_update_stock() {
+  void should_return_updated_stock_when_PUT_method_given_valid_request() {
     // given
     insertStocks(stock1);
-    BigDecimal newValue = BigDecimal.valueOf(42.42);
-    Stock updated = new Stock(stock1.getSymbol(), stock1.getDate(), newValue);
+    BigDecimal updatedValue = BigDecimal.valueOf(42.42);
+    Stock updated = new Stock(stock1.getSymbol(), stock1.getDate(), updatedValue);
     // when
     RequestEntity<Stock> request = RequestEntity.put(stock1Uri).body(updated);
     ResponseEntity<Stock> response = template.exchange(request, Stock.class);
@@ -195,11 +156,11 @@ class AsyncStockControllerIT {
   }
 
   /**
-   * Tests that a non-existing stock value cannot be updated via a PUT request to the appropriate
-   * URI.
+   * Tests that a non-existing stock value cannot be updated via PUT request to its specific URI and
+   * results in an HTTP NotFound status.
    */
   @Test
-  void should_not_update_stock() {
+  void should_return_not_found_when_PUT_method_given_invalid_request() {
     // given
     BigDecimal newValue = BigDecimal.valueOf(42.42);
     Stock updated = new Stock(stock1.getSymbol(), stock1.getDate(), newValue);
@@ -213,9 +174,12 @@ class AsyncStockControllerIT {
         .isEmpty();
   }
 
-  /** Tests that an existing stock value can be deleted via a DELETE request to its specific URI. */
+  /**
+   * Tests that an existing stock value can be deleted via a DELETE request to its specific URI and
+   * results in an HTTP OK status.
+   */
   @Test
-  void should_delete_stock() {
+  void should_return_OK_when_DELETE_method_given_valid_request() {
     // given
     insertStocks(stock1);
     // when
@@ -225,6 +189,45 @@ class AsyncStockControllerIT {
     assertThat(response.getBody()).isNull();
     assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
         .isEmpty();
+  }
+
+  /** Tests that an existing stock value can be retrieved with a GET request to its specific URI. */
+  @Test
+  void should_return_found_stock_when_GET_method_given_valid_request() {
+    // given
+    insertStocks(stock1);
+    // when
+    Stock actual = template.getForObject(stock1Uri, Stock.class);
+    // then
+    assertThat(actual).isEqualTo(stock1);
+  }
+
+  /**
+   * Tests that a non-existing stock value cannot be retrieved with a GET request to its specific *
+   * URI and results in an HTTP NotFound status.
+   */
+  @Test
+  void should_return_not_found_when_GET_method_given_invalid_request() {
+    // when
+    ResponseEntity<Stock> actual = template.getForEntity(stock1Uri, Stock.class);
+    // then
+    assertThat(actual.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    assertThat(actual.hasBody()).isFalse();
+  }
+
+  /**
+   * Tests that existing stock values for a given symbol and within a given date range can be
+   * retrieved with a GET request to the appropriate URI.
+   */
+  @Test
+  void should_return_found_stocks_when_GET_method_given_valid_request() {
+    // given
+    insertStocks(stock1, stock2, stock3, stock4, stock5);
+    // when
+    RequestEntity<Void> request1 = RequestEntity.get(findStocksUri).build();
+    ResponseEntity<List<Stock>> response1 = template.exchange(request1, LIST_OF_STOCKS);
+    // then
+    assertThat(response1.getBody()).isEqualTo(List.of(stock4, stock3));
   }
 
   private void insertStocks(Stock... stocks) {

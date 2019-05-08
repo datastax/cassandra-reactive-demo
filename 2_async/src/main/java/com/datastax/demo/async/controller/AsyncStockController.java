@@ -106,7 +106,8 @@ public class AsyncStockController {
             maybeFound ->
                 maybeFound
                     .map(found -> new Stock(found.getSymbol(), found.getDate(), stock.getValue()))
-                    .map(toUpdate -> stockRepository.save(toUpdate).thenApply(ResponseEntity::ok))
+                    .map(stockRepository::save)
+                    .map(saved -> saved.thenApply(ResponseEntity::ok))
                     .orElse(completedStage(ResponseEntity.notFound().build())));
   }
 
@@ -147,19 +148,15 @@ public class AsyncStockController {
    * @param endExclusive The end of the date range (exclusive).
    * @param offset The zero-based index of the first result to return.
    * @param limit The maximum number of results to return.
-   * @param request The current HTTP request.
    * @return The available stocks for the given symbol and date range.
    */
   @GetMapping("/{symbol}")
-  public CompletionStage<ResponseEntity<Stream<Stock>>> listStocks(
+  public CompletionStage<Stream<Stock>> listStocks(
       @PathVariable(name = "symbol") @NonNull String symbol,
       @RequestParam(name = "start") @NonNull Instant startInclusive,
       @RequestParam(name = "end") @NonNull Instant endExclusive,
       @RequestParam(name = "offset") int offset,
-      @RequestParam(name = "limit") int limit,
-      @NonNull HttpServletRequest request) {
-    return stockRepository
-        .findAllBySymbol(symbol, startInclusive, endExclusive, offset, limit)
-        .thenApply(ResponseEntity::ok);
+      @RequestParam(name = "limit") int limit) {
+    return stockRepository.findAllBySymbol(symbol, startInclusive, endExclusive, offset, limit);
   }
 }

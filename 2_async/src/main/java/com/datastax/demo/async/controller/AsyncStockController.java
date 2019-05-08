@@ -15,14 +15,13 @@
  */
 package com.datastax.demo.async.controller;
 
-import static java.util.concurrent.CompletableFuture.completedStage;
-
 import com.datastax.demo.async.repository.AsyncStockRepository;
 import com.datastax.demo.common.controller.StockUriHelper;
 import com.datastax.demo.common.model.Stock;
 import com.datastax.oss.driver.api.core.DriverException;
 import java.net.URI;
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
 import javax.servlet.http.HttpServletRequest;
@@ -100,15 +99,32 @@ public class AsyncStockController {
       @PathVariable("symbol") String symbol,
       @PathVariable("date") Instant date,
       @RequestBody Stock stock) {
-    return stockRepository
+    var future = new CompletableFuture<ResponseEntity<Stock>>();
+    stockRepository
         .findById(symbol, date)
-        .thenCompose(
-            maybeFound ->
+        .whenComplete(
+            (maybeFound, error1) -> {
+              if (error1 == null) {
                 maybeFound
                     .map(found -> new Stock(found.getSymbol(), found.getDate(), stock.getValue()))
-                    .map(stockRepository::save)
-                    .map(saved -> saved.thenApply(ResponseEntity::ok))
-                    .orElse(completedStage(ResponseEntity.notFound().build())));
+                    .ifPresentOrElse(
+                        toUpdate ->
+                            stockRepository
+                                .save(toUpdate)
+                                .whenComplete(
+                                    (found, error2) -> {
+                                      if (error2 == null) {
+                                        future.complete(ResponseEntity.ok(found));
+                                      } else {
+                                        future.completeExceptionally(error2);
+                                      }
+                                    }),
+                        () -> future.complete(ResponseEntity.notFound().build()));
+              } else {
+                future.completeExceptionally(error1);
+              }
+            });
+    return future;
   }
 
   /**

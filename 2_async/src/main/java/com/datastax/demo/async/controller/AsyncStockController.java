@@ -55,19 +55,6 @@ public class AsyncStockController {
   }
 
   /**
-   * Converts {@link DriverException}s into HTTP 500 error codes and outputs the error message as
-   * the response body.
-   *
-   * @param e The {@link DriverException}.
-   * @return The error message to be used as response body.
-   */
-  @ExceptionHandler(Exception.class)
-  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-  public String errorHandler(DriverException e) {
-    return e.getMessage();
-  }
-
-  /**
    * Creates a new stock value (POST method).
    *
    * @param stock The stock value to create.
@@ -174,5 +161,18 @@ public class AsyncStockController {
       @RequestParam(name = "offset") int offset,
       @RequestParam(name = "limit") int limit) {
     return stockRepository.findAllBySymbol(symbol, startInclusive, endExclusive, offset, limit);
+  }
+
+  /**
+   * Converts {@link DriverException}s into HTTP 500 error codes and outputs the error message as
+   * the response body.
+   *
+   * @param e The {@link DriverException}.
+   * @return The error message to be used as response body.
+   */
+  @ExceptionHandler(Exception.class)
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  public String errorHandler(DriverException e) {
+    return e.getMessage();
   }
 }

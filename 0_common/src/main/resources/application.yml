@@ -12,6 +12,11 @@ server:
 # ----------------------------------------------------------
 # DataStax Enterprise Java Driver Config
 # ----------------------------------------------------------
+# Important: driver settings defined in a Spring application file (YAML or XML) will NOT be
+# automatically detected by the driver. You need to manually apply such settings to the driver
+# configuration, possibly inside a Spring configuration class, and using the driver's
+# ProgrammaticDriverConfigLoaderBuilder. See com.datastax.demo.common.conf.DriverConfiguration
+# for an example of how to achieve this.
 driver:
   contactPoints: 127.0.0.1
   port: 9042
@@ -19,3 +24,4 @@ driver:
   username:
   password:
   keyspace: demo
+  consistency: LOCAL_QUORUM

@@ -55,6 +55,9 @@ import org.springframework.util.StringUtils;
  *   <li><code>driver.keyspace</code>: this property will override the driver's {@code
  *       datastax-java-driver.basic.session-keyspace} option; it has no default value and must be
  *       specified;
+ *   <li><code>driver.consistency</code>: this property will override the driver's {@code
+ *       datastax-java-driver.basic.request.consistency}; it will default to <code>LOCAL_QUORUM
+ *       </code> if unspecified;
  *   <li><code>driver.pageSize</code>: this property will override the driver's {@code
  *       datastax-java-driver.basic.request.page-size}; it will default to <code>10</code> if
  *       unspecified;
@@ -84,6 +87,9 @@ public class DriverConfiguration {
   @Value("${driver.keyspace}")
   protected String keyspaceName;
 
+  @Value("${driver.consistency:LOCAL_QUORUM}")
+  protected String consistency;
+
   @Value("${driver.username}")
   protected String dseUsername;
 
@@ -101,15 +107,23 @@ public class DriverConfiguration {
   }
 
   /**
-   * Returns a {@link ProgrammaticDriverConfigLoaderBuilder} to load driver options. This loader
-   * will override values found in application.conf with properties found in application.yml.
+   * Returns a {@link ProgrammaticDriverConfigLoaderBuilder} to load driver options.
+   *
+   * <p>Use this loader if you need to programmatically override default values for any driver
+   * setting. In this example, we manually set the default consistency level to use, and, if a
+   * username and password are present, we define a basic authentication scheme using {@link
+   * DsePlainTextAuthProvider}.
+   *
+   * <p>Any value explicitly set through this loader will take precedence over values found in the
+   * driver's standard application.conf file.
    *
    * @return The {@link ProgrammaticDriverConfigLoaderBuilder} bean.
    */
   @Bean
   public ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder() {
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
-        DseDriverConfigLoader.programmaticBuilder();
+        DseDriverConfigLoader.programmaticBuilder()
+            .withString(DefaultDriverOption.REQUEST_CONSISTENCY, consistency);
     if (!StringUtils.isEmpty(dseUsername) && !StringUtils.isEmpty(dsePassword)) {
       configLoaderBuilder =
           configLoaderBuilder

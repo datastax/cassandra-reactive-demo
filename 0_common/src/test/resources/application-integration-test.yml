@@ -1,5 +1,13 @@
 # ----------------------------------------------------------
-# DataStax Enterprise Java Driver Test Config
+# DataStax Enterprise Java Driver Integration Test Config
 # ----------------------------------------------------------
+# An example of Spring configuration file specific to the "integration test" profile.
+# It overrides the driver.consistency value defined in the main Spring configuration file with
+# a value more suitable for integration tests.
+# Important: driver settings defined in a Spring application file (YAML or XML) will NOT be
+# automatically detected by the driver. You need to manually apply such settings to the driver
+# configuration, possibly inside a Spring configuration class, and using the driver's
+# ProgrammaticDriverConfigLoaderBuilder. See com.datastax.demo.common.conf.DriverConfiguration
+# for an example of how to achieve this.
 driver:
   consistency: LOCAL_ONE

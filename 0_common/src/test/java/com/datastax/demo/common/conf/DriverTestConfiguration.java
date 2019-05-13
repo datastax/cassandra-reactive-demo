@@ -59,9 +59,16 @@ public class DriverTestConfiguration extends DriverConfiguration {
   }
 
   /**
-   * Creates a {@link ProgrammaticDriverConfigLoaderBuilder} bean that does not emit warnings when
-   * issuing USE statements (this is an anti-pattern in production, but acceptable in integration
-   * tests).
+   * Creates a {@link ProgrammaticDriverConfigLoaderBuilder} bean suitable for integration tests.
+   *
+   * <p>In particular, this loader is configured to not emit warnings when issuing USE statements
+   * (this is an anti-pattern in production, but acceptable in integration tests).
+   *
+   * <p>It is also configured to disable metadata completely (because no tests in this project need
+   * them).
+   *
+   * <p>And finally, it is also configured to optimize some internal Netty values that speed up the
+   * driver's shutdown sequence, thus speeding up tests.
    *
    * @return The {@link ProgrammaticDriverConfigLoaderBuilder} bean.
    */

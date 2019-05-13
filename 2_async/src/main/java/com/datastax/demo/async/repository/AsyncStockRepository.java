@@ -103,7 +103,8 @@ public class AsyncStockRepository {
     CompletionStage<AsyncResultSet> stage = session.executeAsync(bound);
     return stage
         .thenApply(AsyncPagingIterable::one)
-        .thenApply(row -> Optional.ofNullable(row).map(rowMapper));
+        .thenApply(Optional::ofNullable)
+        .thenApply(optional -> optional.map(rowMapper));
   }
 
   /**

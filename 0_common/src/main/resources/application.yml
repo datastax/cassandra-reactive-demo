@@ -6,6 +6,13 @@ spring:
     name: Cassandra Reactive Demo
   main:
     banner-mode: 'OFF'
+  reactor:
+    # Defaults to `true` if Spring Boot devtools is on the classpath; should be set to false
+    # in production for best performance.
+    stacktrace-mode:
+      enabled: true
+
+# The HTTP port that the REST controller will listen to.
 server:
   port: 8082
 

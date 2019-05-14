@@ -170,8 +170,7 @@ class SyncStockControllerIT {
     // then
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     assertThat(response.hasBody()).isFalse();
-    assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
-        .isEmpty();
+    assertThat(session.execute("SELECT * FROM stocks WHERE symbol = 'ABC'").all()).isEmpty();
   }
 
   /**
@@ -187,8 +186,7 @@ class SyncStockControllerIT {
     ResponseEntity<Void> response = template.exchange(request, Void.class);
     // then
     assertThat(response.getBody()).isNull();
-    assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
-        .isEmpty();
+    assertThat(session.execute("SELECT * FROM stocks WHERE symbol = 'ABC'").all()).isEmpty();
   }
 
   /** Tests that an existing stock value can be retrieved with a GET request to its specific URI. */

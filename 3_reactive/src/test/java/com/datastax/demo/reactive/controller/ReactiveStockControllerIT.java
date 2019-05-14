@@ -188,8 +188,7 @@ class ReactiveStockControllerIT {
         .isNotFound()
         .expectBody()
         .isEmpty();
-    assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
-        .isEmpty();
+    assertThat(session.execute("SELECT * FROM stocks WHERE symbol = 'ABC'").all()).isEmpty();
   }
 
   /**
@@ -210,8 +209,7 @@ class ReactiveStockControllerIT {
         .isOk()
         .expectBody()
         .isEmpty();
-    assertThat(session.execute("SELECT date, value from stocks WHERE symbol = 'ABC'").all())
-        .isEmpty();
+    assertThat(session.execute("SELECT * FROM stocks WHERE symbol = 'ABC'").all()).isEmpty();
   }
 
   /** Tests that an existing stock value can be retrieved with a GET request to its specific URI. */

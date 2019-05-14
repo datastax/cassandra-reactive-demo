@@ -116,7 +116,7 @@ class ReactiveStockControllerIT {
 
   /** Tests that a stock value can be created via a POST request to the appropriate URI. */
   @Test
-  void should_create_stock_given_valid_request() {
+  void should_return_created_stock_when_POST_method_given_valid_request() {
     // when
     webTestClient
         .post()
@@ -142,7 +142,7 @@ class ReactiveStockControllerIT {
 
   /** Tests that an existing stock value can be updated via a PUT request to its specific URI. */
   @Test
-  void should_update_stock_given_valid_request() {
+  void should_return_updated_stock_when_PUT_method_given_valid_request() {
     // given
     insertStocks(stock1);
     BigDecimal newValue = BigDecimal.valueOf(42.42);
@@ -169,11 +169,11 @@ class ReactiveStockControllerIT {
   }
 
   /**
-   * Tests that a non-existing stock value cannot be updated via a PUT request to the appropriate
-   * URI.
+   * Tests that a non-existing stock value cannot be updated via PUT request to its specific URI and
+   * results in an HTTP NotFound status.
    */
   @Test
-  void should_not_update_stock() {
+  void should_return_not_found_when_PUT_method_given_invalid_request() {
     // given
     BigDecimal newValue = BigDecimal.valueOf(42.42);
     Stock updated = new Stock(stock1.getSymbol(), stock1.getDate(), newValue);
@@ -192,9 +192,12 @@ class ReactiveStockControllerIT {
         .isEmpty();
   }
 
-  /** Tests that an existing stock value can be deleted via a DELETE request to its specific URI. */
+  /**
+   * Tests that an existing stock value can be deleted via a DELETE request to its specific URI and
+   * results in an HTTP OK status.
+   */
   @Test
-  void should_delete_stock_given_valid_request() {
+  void should_return_OK_when_DELETE_method_given_valid_request() {
     // given
     insertStocks(stock1);
     // when
@@ -213,7 +216,7 @@ class ReactiveStockControllerIT {
 
   /** Tests that an existing stock value can be retrieved with a GET request to its specific URI. */
   @Test
-  void should_find_stock_by_id() {
+  void should_return_found_stock_when_GET_method_given_valid_request() {
     // given
     insertStocks(stock1);
     // when
@@ -231,11 +234,11 @@ class ReactiveStockControllerIT {
   }
 
   /**
-   * Tests that a non-existing stock value cannot be retrieved with a GET request to its specific
-   * URI.
+   * Tests that a non-existing stock value cannot be retrieved with a GET request to its specific *
+   * URI and results in an HTTP NotFound status.
    */
   @Test
-  void should_not_find_stock_by_id() {
+  void should_return_not_found_when_GET_method_given_invalid_request() {
     // when
     webTestClient
         .get()
@@ -253,7 +256,7 @@ class ReactiveStockControllerIT {
    * retrieved with a GET request to the appropriate URI.
    */
   @Test
-  void should_find_stocks_by_symbol() {
+  void should_return_found_stocks_when_GET_method_given_valid_request() {
     // given
     insertStocks(stock1, stock2, stock3, stock4, stock5);
     // when

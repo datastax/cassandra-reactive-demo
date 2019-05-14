@@ -124,8 +124,8 @@ public class ReactiveStockController {
    * Lists the available stocks for the given symbol and date range (GET method).
    *
    * @param symbol The symbol to list stocks for.
-   * @param startInclusive The start of the date range (inclusive).
-   * @param endExclusive The end of the date range (exclusive).
+   * @param start The start of the date range (inclusive).
+   * @param end The end of the date range (exclusive).
    * @param offset The zero-based index of the first result to return.
    * @param limit The maximum number of results to return.
    * @return The available stocks for the given symbol and date range.
@@ -133,11 +133,11 @@ public class ReactiveStockController {
   @GetMapping("/{symbol}")
   public Flux<Stock> listStocks(
       @PathVariable(name = "symbol") @NonNull String symbol,
-      @RequestParam(name = "start") @NonNull Instant startInclusive,
-      @RequestParam(name = "end") @NonNull Instant endExclusive,
+      @RequestParam(name = "start") @NonNull Instant start,
+      @RequestParam(name = "end") @NonNull Instant end,
       @RequestParam(name = "offset") int offset,
       @RequestParam(name = "limit") int limit) {
-    return stockRepository.findAllBySymbol(symbol, startInclusive, endExclusive, offset, limit);
+    return stockRepository.findAllBySymbol(symbol, start, end, offset, limit);
   }
 
   /**

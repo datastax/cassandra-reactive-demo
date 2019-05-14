@@ -101,8 +101,8 @@ public class SyncStockRepository {
    * Retrieves all the stock values for a given symbol in a given date range.
    *
    * @param symbol The stock symbol to find.
-   * @param startInclusive The date range start (inclusive).
-   * @param endExclusive The date range end (exclusive).
+   * @param start The date range start (inclusive).
+   * @param end The date range end (exclusive).
    * @param offset The zero-based index of the first result to return.
    * @param limit The maximum number of results to return.
    * @return A {@link Stream} of results.
@@ -110,11 +110,11 @@ public class SyncStockRepository {
   @NonNull
   public Stream<Stock> findAllBySymbol(
       @NonNull String symbol,
-      @NonNull Instant startInclusive,
-      @NonNull Instant endExclusive,
+      @NonNull Instant start,
+      @NonNull Instant end,
       long offset,
       long limit) {
-    BoundStatement bound = findBySymbol.bind(symbol, startInclusive, endExclusive);
+    BoundStatement bound = findBySymbol.bind(symbol, start, end);
     ResultSet rs = session.execute(bound);
     Stream<Row> stream = StreamSupport.stream(rs.spliterator(), false);
     return stream.skip(offset).limit(limit).map(rowMapper);

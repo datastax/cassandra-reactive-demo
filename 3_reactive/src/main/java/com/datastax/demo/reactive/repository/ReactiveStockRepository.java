@@ -104,8 +104,8 @@ public class ReactiveStockRepository {
    * Retrieves all the stock values for a given symbol in a given date range, page by page.
    *
    * @param symbol The stock symbol to find.
-   * @param startInclusive The date range start (inclusive).
-   * @param endExclusive The date range end (exclusive).
+   * @param start The date range start (inclusive).
+   * @param end The date range end (exclusive).
    * @param offset The zero-based index of the first result to return.
    * @param limit The maximum number of results to return.
    * @return A {@link Flux} that will emit the retrieved stocks, then complete.
@@ -113,11 +113,11 @@ public class ReactiveStockRepository {
   @NonNull
   public Flux<Stock> findAllBySymbol(
       @NonNull String symbol,
-      @NonNull Instant startInclusive,
-      @NonNull Instant endExclusive,
+      @NonNull Instant start,
+      @NonNull Instant end,
       long offset,
       long limit) {
-    BoundStatement bound = findBySymbol.bind(symbol, startInclusive, endExclusive);
+    BoundStatement bound = findBySymbol.bind(symbol, start, end);
     ReactiveResultSet rs = session.executeReactive(bound);
     Flux<ReactiveRow> flux = Flux.from(rs);
     return flux.skip(offset).take(limit).map(rowMapper);

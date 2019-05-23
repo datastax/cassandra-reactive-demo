@@ -22,10 +22,10 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.lang.NonNull;
@@ -116,7 +116,7 @@ public class SyncStockRepository {
       long limit) {
     BoundStatement bound = findBySymbol.bind(symbol, start, end);
     ResultSet rs = session.execute(bound);
-    Stream<Row> stream = StreamSupport.stream(rs.spliterator(), false);
+    Stream<Row> stream = Stream.iterate(rs.one(), Objects::nonNull, row -> rs.one());
     return stream.skip(offset).limit(limit).map(rowMapper);
   }
 }

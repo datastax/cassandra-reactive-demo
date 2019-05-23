@@ -31,7 +31,6 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
@@ -117,8 +116,7 @@ class SyncStockRepositoryTest {
     // given
     given(findBySymbol.bind("ABC", i1, i2)).willReturn(bound);
     given(session.execute(bound)).willReturn(resultSet);
-    List<Row> rows = List.of(row1, row2);
-    given(resultSet.spliterator()).willReturn(rows.spliterator());
+    given(resultSet.one()).willReturn(row1, row2, null);
     given(row1.getString(SYMBOL)).willReturn(stock1.getSymbol());
     given(row1.getInstant(DATE)).willReturn(stock1.getDate());
     given(row1.getBigDecimal(VALUE)).willReturn(stock1.getValue());

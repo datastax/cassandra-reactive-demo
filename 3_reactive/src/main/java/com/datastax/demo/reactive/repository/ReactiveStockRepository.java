@@ -16,9 +16,9 @@
 package com.datastax.demo.reactive.repository;
 
 import com.datastax.demo.common.model.Stock;
-import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.cql.reactive.ReactiveResultSet;
 import com.datastax.dse.driver.api.core.cql.reactive.ReactiveRow;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -36,7 +36,7 @@ import reactor.core.publisher.Mono;
 @Profile("!unit-test")
 public class ReactiveStockRepository {
 
-  private final DseSession session;
+  private final CqlSession session;
 
   private final PreparedStatement insert;
   private final PreparedStatement deleteById;
@@ -45,7 +45,7 @@ public class ReactiveStockRepository {
   private final Function<Row, Stock> rowMapper;
 
   public ReactiveStockRepository(
-      DseSession session,
+      CqlSession session,
       @Qualifier("stocks.prepared.insert") PreparedStatement insert,
       @Qualifier("stocks.prepared.deleteById") PreparedStatement deleteById,
       @Qualifier("stocks.prepared.findById") PreparedStatement findById,

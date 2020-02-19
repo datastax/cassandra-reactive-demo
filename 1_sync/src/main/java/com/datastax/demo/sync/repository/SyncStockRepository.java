@@ -16,7 +16,7 @@
 package com.datastax.demo.sync.repository;
 
 import com.datastax.demo.common.model.Stock;
-import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
@@ -36,7 +36,7 @@ import org.springframework.stereotype.Repository;
 @Profile("!unit-test")
 public class SyncStockRepository {
 
-  private final DseSession session;
+  private final CqlSession session;
 
   private final PreparedStatement insert;
   private final PreparedStatement deleteById;
@@ -45,7 +45,7 @@ public class SyncStockRepository {
   private final Function<Row, Stock> rowMapper;
 
   public SyncStockRepository(
-      DseSession session,
+      CqlSession session,
       @Qualifier("stocks.prepared.insert") PreparedStatement insert,
       @Qualifier("stocks.prepared.deleteById") PreparedStatement deleteById,
       @Qualifier("stocks.prepared.findById") PreparedStatement findById,

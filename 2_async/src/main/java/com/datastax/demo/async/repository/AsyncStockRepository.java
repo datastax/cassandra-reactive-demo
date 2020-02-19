@@ -16,8 +16,8 @@
 package com.datastax.demo.async.repository;
 
 import com.datastax.demo.common.model.Stock;
-import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.AsyncPagingIterable;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
@@ -40,7 +40,7 @@ import org.springframework.stereotype.Repository;
 @Profile("!unit-test")
 public class AsyncStockRepository {
 
-  private final DseSession session;
+  private final CqlSession session;
 
   private final PreparedStatement insert;
   private final PreparedStatement deleteById;
@@ -49,7 +49,7 @@ public class AsyncStockRepository {
   private final Function<Row, Stock> rowMapper;
 
   public AsyncStockRepository(
-      DseSession session,
+      CqlSession session,
       @Qualifier("stocks.prepared.insert") PreparedStatement insert,
       @Qualifier("stocks.prepared.deleteById") PreparedStatement deleteById,
       @Qualifier("stocks.prepared.findById") PreparedStatement findById,

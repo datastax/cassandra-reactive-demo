@@ -28,10 +28,6 @@
   <dependencies>
     <!-- Driver  -->
     <dependency>
-      <groupId>com.datastax.dse</groupId>
-      <artifactId>dse-java-driver-core</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core</artifactId>
     </dependency>

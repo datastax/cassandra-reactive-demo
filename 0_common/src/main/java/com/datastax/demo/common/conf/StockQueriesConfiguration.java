@@ -18,8 +18,8 @@ package com.datastax.demo.common.conf;
 import static com.datastax.oss.driver.api.querybuilder.QueryBuilder.bindMarker;
 import static com.datastax.oss.driver.api.querybuilder.relation.Relation.column;
 
-import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
@@ -114,25 +114,25 @@ public class StockQueriesConfiguration {
 
   @Bean("stocks.prepared.insert")
   public PreparedStatement prepareInsert(
-      DseSession session, @Qualifier("stocks.simple.insert") SimpleStatement stockInsert) {
+      CqlSession session, @Qualifier("stocks.simple.insert") SimpleStatement stockInsert) {
     return session.prepare(stockInsert);
   }
 
   @Bean("stocks.prepared.deleteById")
   public PreparedStatement prepareDeleteById(
-      DseSession session, @Qualifier("stocks.simple.deleteById") SimpleStatement stockDeleteById) {
+      CqlSession session, @Qualifier("stocks.simple.deleteById") SimpleStatement stockDeleteById) {
     return session.prepare(stockDeleteById);
   }
 
   @Bean("stocks.prepared.findById")
   public PreparedStatement prepareFindById(
-      DseSession session, @Qualifier("stocks.simple.findById") SimpleStatement stockFindById) {
+      CqlSession session, @Qualifier("stocks.simple.findById") SimpleStatement stockFindById) {
     return session.prepare(stockFindById);
   }
 
   @Bean("stocks.prepared.findBySymbol")
   public PreparedStatement prepareFindBySymbol(
-      DseSession session,
+      CqlSession session,
       @Qualifier("stocks.simple.findBySymbol") SimpleStatement stockFindBySymbol) {
     return session.prepare(stockFindBySymbol);
   }

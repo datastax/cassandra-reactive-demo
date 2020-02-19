@@ -18,7 +18,7 @@ package com.datastax.demo.reactive.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.demo.common.model.Stock;
-import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
@@ -60,7 +60,7 @@ class ReactiveStockControllerIT {
 
   @Autowired private WebTestClient webTestClient;
 
-  @Autowired private DseSession session;
+  @Autowired private CqlSession session;
 
   @Autowired
   @Qualifier("stocks.prepared.insert")

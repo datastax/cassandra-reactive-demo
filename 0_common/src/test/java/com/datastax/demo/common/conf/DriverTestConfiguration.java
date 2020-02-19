@@ -15,9 +15,9 @@
  */
 package com.datastax.demo.common.conf;
 
-import com.datastax.dse.driver.api.core.DseSession;
-import com.datastax.dse.driver.api.core.DseSessionBuilder;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
@@ -92,14 +92,14 @@ public class DriverTestConfiguration extends DriverConfiguration {
    * Creates a session bean without binding it to an existing keyspace like we would normally do in
    * production.
    *
-   * @param sessionBuilder The {@link DseSessionBuilder} bean to use.
+   * @param sessionBuilder The {@link CqlSessionBuilder} bean to use.
    * @param keyspace The {@linkplain CqlIdentifier keyspace} bean to use.
-   * @return The {@link DseSession} bean.
+   * @return The {@link CqlSession} bean.
    */
   @Bean
   @Override
-  public DseSession session(
-      @NonNull DseSessionBuilder sessionBuilder,
+  public CqlSession session(
+      @NonNull CqlSessionBuilder sessionBuilder,
       @Qualifier("keyspace") @NonNull CqlIdentifier keyspace) {
     // do not set the keyspace now since it needs to be created first, see createTestFixtures.
     return sessionBuilder.build();
@@ -113,7 +113,7 @@ public class DriverTestConfiguration extends DriverConfiguration {
    * @return A "slow" execution profile.
    */
   @Bean
-  public DriverExecutionProfile slowProfile(DseSession session) {
+  public DriverExecutionProfile slowProfile(CqlSession session) {
     return SessionUtils.slowProfile(session);
   }
 
@@ -124,7 +124,7 @@ public class DriverTestConfiguration extends DriverConfiguration {
   @PostConstruct
   public void createTestFixtures() {
     CqlIdentifier keyspace = keyspace();
-    DseSession session = session(sessionBuilder(configLoaderBuilder()), keyspace);
+    CqlSession session = session(sessionBuilder(configLoaderBuilder()), keyspace);
     DriverExecutionProfile slowProfile = slowProfile(session);
     var createKeyspace =
         SchemaBuilder.createKeyspace(keyspace)
@@ -141,7 +141,7 @@ public class DriverTestConfiguration extends DriverConfiguration {
   @PreDestroy
   public void destroyTestFixtures() {
     CqlIdentifier keyspace = keyspace();
-    DseSession session = session(sessionBuilder(configLoaderBuilder()), keyspace);
+    CqlSession session = session(sessionBuilder(configLoaderBuilder()), keyspace);
     DriverExecutionProfile slowProfile = slowProfile(session);
     var dropKeyspace = SchemaBuilder.dropKeyspace(keyspace).ifExists().build();
     session.execute(dropKeyspace.setExecutionProfile(slowProfile));

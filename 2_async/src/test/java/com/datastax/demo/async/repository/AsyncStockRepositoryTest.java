@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 
 import com.datastax.demo.common.model.Stock;
 import com.datastax.demo.common.repository.RowToStockMapper;
-import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
@@ -48,7 +48,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class AsyncStockRepositoryTest {
 
-  @Mock private DseSession session;
+  @Mock private CqlSession session;
 
   @Mock private PreparedStatement insert;
   @Mock private PreparedStatement delete;

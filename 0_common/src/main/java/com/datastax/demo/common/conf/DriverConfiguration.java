@@ -15,13 +15,13 @@
  */
 package com.datastax.demo.common.conf;
 
-import com.datastax.dse.driver.api.core.DseSession;
-import com.datastax.dse.driver.api.core.DseSessionBuilder;
-import com.datastax.dse.driver.api.core.config.DseDriverConfigLoader;
-import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
+import com.datastax.oss.driver.internal.core.auth.PlainTextAuthProvider;
 import java.net.InetSocketAddress;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -112,7 +112,7 @@ public class DriverConfiguration {
    * <p>Use this loader if you need to programmatically override default values for any driver
    * setting. In this example, we manually set the default consistency level to use, and, if a
    * username and password are present, we define a basic authentication scheme using {@link
-   * DsePlainTextAuthProvider}.
+   * PlainTextAuthProvider}.
    *
    * <p>Any value explicitly set through this loader will take precedence over values found in the
    * driver's standard application.conf file.
@@ -122,13 +122,13 @@ public class DriverConfiguration {
   @Bean
   public ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder() {
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
-        DseDriverConfigLoader.programmaticBuilder()
+        DriverConfigLoader.programmaticBuilder()
             .withString(DefaultDriverOption.REQUEST_CONSISTENCY, consistency);
     if (!StringUtils.isEmpty(dseUsername) && !StringUtils.isEmpty(dsePassword)) {
       configLoaderBuilder =
           configLoaderBuilder
               .withString(
-                  DefaultDriverOption.AUTH_PROVIDER_CLASS, DsePlainTextAuthProvider.class.getName())
+                  DefaultDriverOption.AUTH_PROVIDER_CLASS, PlainTextAuthProvider.class.getName())
               .withString(DefaultDriverOption.AUTH_PROVIDER_USER_NAME, dseUsername)
               .withString(DefaultDriverOption.AUTH_PROVIDER_PASSWORD, dsePassword);
     }
@@ -136,19 +136,19 @@ public class DriverConfiguration {
   }
 
   /**
-   * Returns a {@link DseSessionBuilder} that will configure sessions using the provided {@link
+   * Returns a {@link CqlSessionBuilder} that will configure sessions using the provided {@link
    * ProgrammaticDriverConfigLoaderBuilder config loader builder}, as well as the contact points and
    * local datacenter name found in application.yml, merged with other options found in
    * application.conf.
    *
    * @param driverConfigLoaderBuilder The {@link ProgrammaticDriverConfigLoaderBuilder} bean to use.
-   * @return The {@link DseSessionBuilder} bean.
+   * @return The {@link CqlSessionBuilder} bean.
    */
   @Bean
-  public DseSessionBuilder sessionBuilder(
+  public CqlSessionBuilder sessionBuilder(
       @NonNull ProgrammaticDriverConfigLoaderBuilder driverConfigLoaderBuilder) {
-    DseSessionBuilder sessionBuilder =
-        new DseSessionBuilder().withConfigLoader(driverConfigLoaderBuilder.build());
+    CqlSessionBuilder sessionBuilder =
+        new CqlSessionBuilder().withConfigLoader(driverConfigLoaderBuilder.build());
     for (String contactPoint : contactPoints) {
       InetSocketAddress address = InetSocketAddress.createUnresolved(contactPoint, port);
       sessionBuilder = sessionBuilder.addContactPoint(address);
@@ -157,16 +157,16 @@ public class DriverConfiguration {
   }
 
   /**
-   * Returns the {@link DseSession} to use, configured with the provided {@link DseSessionBuilder
+   * Returns the {@link CqlSession} to use, configured with the provided {@link CqlSessionBuilder
    * session builder}. The returned session will be automatically connected to the given keyspace.
    *
-   * @param sessionBuilder The {@link DseSessionBuilder} bean to use.
+   * @param sessionBuilder The {@link CqlSessionBuilder} bean to use.
    * @param keyspace The {@linkplain CqlIdentifier keyspace} bean to use.
-   * @return The {@link DseSession} bean.
+   * @return The {@link CqlSession} bean.
    */
   @Bean
-  public DseSession session(
-      @NonNull DseSessionBuilder sessionBuilder,
+  public CqlSession session(
+      @NonNull CqlSessionBuilder sessionBuilder,
       @Qualifier("keyspace") @NonNull CqlIdentifier keyspace) {
     return sessionBuilder.withKeyspace(keyspace).build();
   }
